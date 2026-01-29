@@ -1,4 +1,4 @@
-# 🚀 cPanel Multi-Tenant Hosting Platform
+# 🚀 Nexus NEO: Hosting Platform # 🚀
 
 **Automated cPanel provisioning system with Terraform modules for multi-customer hosting**
 
@@ -56,7 +56,7 @@ Each customer gets:
 4. **Python 3** with boto3 (`pip install boto3`)
 5. **Domain registrar** access for DNS
 
-### Step 1: Setup Backend Infrastructure
+### Step 1: Set up Backend Infrastructure
 
 ```bash
 # One-time setup for S3 backend
@@ -87,12 +87,12 @@ This creates:
 # 1. Create customer directory
 # 2. Generate Terraform config
 # 3. Deploy infrastructure
-# 4. Send welcome email
+# 4. Send a welcome email
 ```
 
 ### Step 3: Configure DNS
 
-Point customer's nameservers to:
+Point the customer's nameservers to:
 ```
 ns1.customer.com → <SERVER_IP>
 ns2.customer.com → <SERVER_IP>
@@ -367,7 +367,7 @@ terraform apply
 ```bash
 cd environments/customers/customer-com
 
-# Edit terraform.tfvars
+# Edit Terraform. tfvars
 instance_type = "t3.large"
 data_volume_size = 200
 
@@ -381,7 +381,7 @@ terraform apply
 # Change instance type only
 cd environments/customers/customer-com
 
-# Edit terraform.tfvars
+# Edit Terraform. tfvars
 instance_type = "t3.small"
 
 terraform apply
@@ -532,6 +532,7 @@ This platform is provided as-is for hosting automation. You are responsible for:
 - AWS infrastructure costs
 - cPanel/WHM licenses
 - Compliance with AWS and cPanel terms
+- Nexus Smart Solutions
 
 ---
 
