@@ -546,7 +546,3 @@ This platform is provided as-is for hosting automation. You are responsible for:
 - [ ] API for third-party integrations
 
 ---
-
-**Ready to start?** Begin with [Step 1: Setup Backend Infrastructure](#step-1-setup-backend-infrastructure)
-
-**Questions?** Open an issue or contact support.
