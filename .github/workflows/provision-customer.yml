@@ -45,27 +45,26 @@ jobs:
           aws-region: us-east-2
 
       - name: Terraform Run
+        # هذا السطر يجبر تيرارفورم على العمل داخل المجلد المطلوب فقط
         working-directory: environments/customers/template/
         run: |
-          # 1. طباعة الملفات للتأكد من وجودها في هذا المجلد
-          echo "Current working directory: $(pwd)"
+          # 1. طباعة الملفات للتأكد من وجودها
+          echo "Working in directory: $(pwd)"
           ls -F
-          
-          # 2. التأكد من أن variables.tf يحتوي على التعريفات المطلوبة
-          echo "Checking variables.tf content:"
-          grep -E "customer_domain|customer_email|plan_tier|client_id" variables.tf
 
-          # 3. تنفيذ تيرارفورم
+          # 2. تهيئة تيرارفورم مع إعدادات الباك إند الديناميكية
           terraform init -reconfigure \
             -backend-config="bucket=hosting-company-terraform-state-093063750620" \
             -backend-config="region=us-east-2" \
             -backend-config="key=customers/${{ github.event.client_payload.domain || github.event.inputs.domain }}/terraform.tfstate" \
             -backend-config="dynamodb_table=terraform-state-locks"
 
+          # 3. تنفيذ الـ Apply مع تمرير كل المتغيرات التي يطلبها ملف variables.tf
           terraform apply -auto-approve \
             -var="customer_domain=${{ github.event.client_payload.domain || github.event.inputs.domain }}" \
             -var="customer_email=${{ github.event.client_payload.email || github.event.inputs.email }}" \
             -var="plan_tier=${{ github.event.client_payload.tier || github.event.inputs.tier }}" \
             -var="client_id=${{ github.event.client_payload.client_id || github.event.inputs.client_id }}" \
             -var="instance_type=t3.medium" \
-            -var="data_volume_size=100"
+            -var="data_volume_size=100" \
+            -var="region=us-east-2"
