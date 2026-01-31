@@ -5,6 +5,12 @@
 
 terraform {
   required_version = ">= 1.0"
+  
+  # Backend configuration for state management
+  backend "s3" {
+    # Backend config will be provided via -backend-config flags
+    encrypt = true
+  }
 }
 
 # Network Module
