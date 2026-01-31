@@ -25,22 +25,24 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
 
-      - name: Debug and Terraform
+      - name: Locate and Run Terraform
         run: |
-          echo "Looking for Terraform files..."
-          # This dynamic command finds the directory containing main.tf automatically
-          TF_DIR=$(find . -name "main.tf" -exec dirname {} \; | head -n 1)
+          echo "--- Current Directory Content ---"
+          ls -R
           
-          if [ -z "$TF_DIR" ]; then
-            echo "Error: Could not find main.tf in the repository!"
+          echo "--- Searching for main.tf ---"
+          TF_PATH=$(find . -name "main.tf" -print -quit)
+          
+          if [ -z "$TF_PATH" ]; then
+            echo "CRITICAL ERROR: main.tf not found anywhere in the repo!"
             exit 1
           fi
           
+          TF_DIR=$(dirname "$TF_PATH")
           echo "Found Terraform files in: $TF_DIR"
+          
           cd "$TF_DIR"
-          
           terraform init
-          
           terraform apply -auto-approve \
             -var="customer_domain=${{ github.event.client_payload.domain }}" \
             -var="customer_email=${{ github.event.client_payload.email }}" \
