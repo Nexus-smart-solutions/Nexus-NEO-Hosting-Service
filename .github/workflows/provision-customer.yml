@@ -32,7 +32,7 @@ jobs:
           TF_DIR=$(dirname "$TF_PATH")
           cd "$TF_DIR"
 
-          echo "Step 2: Forcing Backend Initialization..."
+          echo "Step 2: Forcing Backend Initialization with Reconfigure..."
           terraform init -reconfigure \
             -backend-config="bucket=hosting-company-terraform-state-093063750620" \
             -backend-config="region=us-east-2" \
