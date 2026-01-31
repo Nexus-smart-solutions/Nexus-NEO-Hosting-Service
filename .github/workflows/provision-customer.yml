@@ -25,14 +25,22 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
 
-      - name: Terraform Init and Apply
+      - name: Debug and Terraform
         run: |
-          # Navigate to the template directory
-          cd environments/customers/template
+          echo "Looking for Terraform files..."
+          # This dynamic command finds the directory containing main.tf automatically
+          TF_DIR=$(find . -name "main.tf" -exec dirname {} \; | head -n 1)
+          
+          if [ -z "$TF_DIR" ]; then
+            echo "Error: Could not find main.tf in the repository!"
+            exit 1
+          fi
+          
+          echo "Found Terraform files in: $TF_DIR"
+          cd "$TF_DIR"
           
           terraform init
           
-          # Pass data from the GitHub Payload to Terraform Variables
           terraform apply -auto-approve \
             -var="customer_domain=${{ github.event.client_payload.domain }}" \
             -var="customer_email=${{ github.event.client_payload.email }}" \
