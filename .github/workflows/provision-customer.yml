@@ -46,32 +46,30 @@ jobs:
 
       - name: Terraform Run
         run: |
-          # 1. التأكد من مكان الملفات
-          echo "Checking files in current directory..."
-          ls -R
+          # 1. الدخول لمجلد التمبلت مباشرة حيث توجد الملفات التي رفعتها
+          cd environments/customers/template/
           
-          # 2. البحث عن ملف main.tf ودخول الفولدر بتاعه
-          TF_FILE=$(find . -name "main.tf" -not -path "*/.*" -print -quit)
-          if [ -z "$TF_FILE" ]; then
-            echo "ERROR: main.tf not found anywhere!"
+          echo "Current Directory: $(pwd)"
+          echo "Files found:"
+          ls -F
+
+          # 2. التأكد من وجود ملف المتغيرات تحديداً
+          if [ ! -f "variables.tf" ]; then
+            echo "ERROR: variables.tf not found in this directory!"
             exit 1
           fi
-          
-          TF_DIR=$(dirname "$TF_FILE")
-          cd "$TF_DIR"
-          echo "Moved to directory: $TF_DIR"
 
-          # 3. التأكد إن المتغيرات مكتوبة جوه الملف فعلاً
-          echo "Content of main.tf (First 15 lines):"
-          head -n 15 main.tf
-
-          # 4. تنفيذ تيرارفورم
+          # 3. تشغيل تيرارفورم مع تمرير كافة المتغيرات المطلوبة
           terraform init -reconfigure \
             -backend-config="bucket=hosting-company-terraform-state-093063750620" \
-            -backend-config="region=us-east-2"
+            -backend-config="region=us-east-2" \
+            -backend-config="key=customers/${{ github.event.client_payload.domain || github.event.inputs.domain }}/terraform.tfstate" \
+            -backend-config="dynamodb_table=terraform-state-locks"
 
           terraform apply -auto-approve \
             -var="customer_domain=${{ github.event.client_payload.domain || github.event.inputs.domain }}" \
             -var="customer_email=${{ github.event.client_payload.email || github.event.inputs.email }}" \
             -var="plan_tier=${{ github.event.client_payload.tier || github.event.inputs.tier }}" \
-            -var="client_id=${{ github.event.client_payload.client_id || github.event.inputs.client_id }}"
+            -var="client_id=${{ github.event.client_payload.client_id || github.event.inputs.client_id }}" \
+            -var="instance_type=t3.medium" \
+            -var="data_volume_size=100"
