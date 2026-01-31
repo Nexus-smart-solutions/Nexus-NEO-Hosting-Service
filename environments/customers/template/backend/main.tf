@@ -1,17 +1,13 @@
-# =================================================================
-# TERRAFORM CONFIGURATION & BACKEND
-# =================================================================
-
+# 1. لازم نعرف المتغيرات هنا الأول عشان تيرارفورم يقبل يستلمهم
 variable "customer_domain" { type = string }
 variable "customer_email"  { type = string }
 variable "plan_tier"       { type = string }
 variable "client_id"       { type = string }
 variable "region"          { type = string; default = "us-east-2" }
 
-# ------------------------------------------
-
-terraform {
-  required_version = ">= 1.0"
+# =================================================================
+# TERRAFORM CONFIGURATION & BACKEND
+# =================================================================
 
 terraform {
   required_version = ">= 1.0"
@@ -39,7 +35,6 @@ provider "aws" {
 # INFRASTRUCTURE RESOURCES
 # =================================================================
 
-# S3 Bucket for Terraform State Storage
 resource "aws_s3_bucket" "terraform_state" {
   bucket = "hosting-company-terraform-state-093063750620"
 
@@ -50,7 +45,6 @@ resource "aws_s3_bucket" "terraform_state" {
   }
 }
 
-# Enable Object Versioning
 resource "aws_s3_bucket_versioning" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
   versioning_configuration {
@@ -58,7 +52,6 @@ resource "aws_s3_bucket_versioning" "terraform_state" {
   }
 }
 
-# DynamoDB Table for State Locking
 resource "aws_dynamodb_table" "terraform_lock" {
   name         = "terraform-state-locks"
   billing_mode = "PAY_PER_REQUEST"
