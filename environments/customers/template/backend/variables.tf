@@ -1,7 +1,3 @@
-# =================================================================
-# DYNAMIC CUSTOMER VARIABLES (From GitHub Payload)
-# =================================================================
-
 variable "customer_domain" {
   description = "The domain name provided by the customer"
   type        = string
@@ -22,9 +18,6 @@ variable "client_id" {
   type        = string
 }
 
-# =================================================================
-# GENERAL INFRASTRUCTURE VARIABLES
-# =================================================================
 
 variable "region" {
   description = "Target AWS region"
