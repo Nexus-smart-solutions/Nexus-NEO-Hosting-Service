@@ -1,27 +1,63 @@
-- name: Locate and Initialize Terraform
+name: "NEO Infrastructure Automation"
+
+on:
+  repository_dispatch:
+    types: [provision_customer]
+
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: 'Customer Domain Name'
+        required: true
+        default: 'example.com'
+      email:
+        description: 'Customer Email'
+        required: true
+      tier:
+        description: 'Subscription Tier (basic/premium)'
+        required: true
+        default: 'basic'
+      client_id:
+        description: 'Client ID'
+        required: true
+
+jobs:
+  provision:
+    name: "Deploy Customer Infrastructure"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Terraform Init & Apply
         run: |
-          # 1. إيجاد المجلد الصحيح
           TF_PATH=$(find . -name "main.tf" -not -path "*/.*" -print -quit)
           TF_DIR=$(dirname "$TF_PATH")
-          echo "Found main.tf in: $TF_DIR"
           cd "$TF_DIR"
 
-          # 2. التأكد من وجود الـ variables داخل الملف فعلياً (للأمان)
-          echo "Checking variables in main.tf..."
-          grep "variable" main.tf
-
-          # 3. الـ Initialization
-          echo "Running Terraform Init..."
+          echo "Initializing Terraform..."
           terraform init -reconfigure \
             -backend-config="bucket=hosting-company-terraform-state-093063750620" \
             -backend-config="region=us-east-2" \
             -backend-config="dynamodb_table=terraform-state-locks" \
             -backend-config="encrypt=true"
 
-          # 4. الـ Apply (لازم يفضل في نفس بلوك الـ run لضمان المسار)
           echo "Running Terraform Apply..."
           terraform apply -auto-approve \
-            -var="customer_domain=${{ github.event.client_payload.domain }}" \
-            -var="customer_email=${{ github.event.client_payload.email }}" \
-            -var="plan_tier=${{ github.event.client_payload.tier }}" \
-            -var="client_id=${{ github.event.client_payload.client_id }}"
+            -var="customer_domain=${{ github.event.client_payload.domain || github.event.inputs.domain }}" \
+            -var="customer_email=${{ github.event.client_payload.email || github.event.inputs.email }}" \
+            -var="plan_tier=${{ github.event.client_payload.tier || github.event.inputs.tier }}" \
+            -var="client_id=${{ github.event.client_payload.client_id || github.event.inputs.client_id }}"
