@@ -1,8 +1,6 @@
 # =================================================================
-# TERRAFORM REMOTE BACKEND CONFIGURATION
+# TERRAFORM CONFIGURATION & BACKEND
 # =================================================================
-# Purpose: This configuration ensures state management is centralized
-# and locked to prevent concurrent modifications.
 
 terraform {
   required_version = ">= 1.0"
@@ -13,13 +11,13 @@ terraform {
     }
   }
 
-  # Backend storage configuration for Terraform state files
+  # Remote backend configuration using existing S3 and DynamoDB
   backend "s3" {
     bucket         = "hosting-company-terraform-state-093063750620"
     key            = "global/s3/terraform.tfstate"
     region         = "us-east-2"
     encrypt        = true
-    dynamodb_table = "terraform-state-locks" # Used for state locking and consistency
+    dynamodb_table = "terraform-state-locks"
   }
 }
 
@@ -47,7 +45,7 @@ variable "organization_name" {
 # INFRASTRUCTURE RESOURCES
 # =================================================================
 
-# Terraform State Storage (Existing Bucket referenced to ensure consistency)
+# S3 Bucket for Terraform State Storage
 resource "aws_s3_bucket" "terraform_state" {
   bucket = "hosting-company-terraform-state-093063750620"
 
@@ -58,7 +56,7 @@ resource "aws_s3_bucket" "terraform_state" {
   }
 }
 
-# Enable Object Versioning for high availability and disaster recovery
+# Enable Object Versioning for state recovery
 resource "aws_s3_bucket_versioning" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
   versioning_configuration {
@@ -66,11 +64,11 @@ resource "aws_s3_bucket_versioning" "terraform_state" {
   }
 }
 
-# DynamoDB Table for Distributed State Locking
+# DynamoDB Table for State Locking
 resource "aws_dynamodb_table" "terraform_lock" {
-  name           = "terraform-state-locks"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "LockID"
+  name         = "terraform-state-locks"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
 
   attribute {
     name = "LockID"
