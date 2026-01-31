@@ -45,21 +45,17 @@ jobs:
           aws-region: us-east-2
 
       - name: Terraform Run
+        working-directory: environments/customers/template/
         run: |
-          # 1. الدخول لمجلد التمبلت مباشرة حيث توجد الملفات التي رفعتها
-          cd environments/customers/template/
-          
-          echo "Current Directory: $(pwd)"
-          echo "Files found:"
+          # 1. طباعة الملفات للتأكد من وجودها في هذا المجلد
+          echo "Current working directory: $(pwd)"
           ls -F
+          
+          # 2. التأكد من أن variables.tf يحتوي على التعريفات المطلوبة
+          echo "Checking variables.tf content:"
+          grep -E "customer_domain|customer_email|plan_tier|client_id" variables.tf
 
-          # 2. التأكد من وجود ملف المتغيرات تحديداً
-          if [ ! -f "variables.tf" ]; then
-            echo "ERROR: variables.tf not found in this directory!"
-            exit 1
-          fi
-
-          # 3. تشغيل تيرارفورم مع تمرير كافة المتغيرات المطلوبة
+          # 3. تنفيذ تيرارفورم
           terraform init -reconfigure \
             -backend-config="bucket=hosting-company-terraform-state-093063750620" \
             -backend-config="region=us-east-2" \
