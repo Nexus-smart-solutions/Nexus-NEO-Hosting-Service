@@ -1,0 +1,243 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://yourcompany.com/schemas/provision-customer-payload.json",
+  "title": "Provision Customer Payload",
+  "description": "Schema for validating customer provisioning API payload",
+  "type": "object",
+  "required": [
+    "event_type",
+    "client_payload"
+  ],
+  "properties": {
+    "event_type": {
+      "type": "string",
+      "const": "provision_customer",
+      "description": "Event type identifier (must be 'provision_customer')"
+    },
+    "client_payload": {
+      "type": "object",
+      "required": [
+        "domain",
+        "email",
+        "tier",
+        "client_id"
+      ],
+      "properties": {
+        "domain": {
+          "type": "string",
+          "pattern": "^(?!:\\/\\/)([a-zA-Z0-9-_]+\\.)*[a-zA-Z0-9][a-zA-Z0-9-_]+\\.[a-zA-Z]{2,11}?$",
+          "description": "Customer domain name (no subdomain, no protocol)",
+          "examples": [
+            "example.com",
+            "my-site.io",
+            "business123.co.uk"
+          ]
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+          "description": "Customer email address",
+          "examples": [
+            "customer@example.com",
+            "admin@site.io"
+          ]
+        },
+        "tier": {
+          "type": "string",
+          "enum": [
+            "basic",
+            "standard",
+            "premium"
+          ],
+          "description": "Hosting tier/plan level"
+        },
+        "client_id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]{1,50}$",
+          "minLength": 1,
+          "maxLength": 50,
+          "description": "Unique customer identifier",
+          "examples": [
+            "cust_abc123",
+            "customer-001",
+            "USER_XYZ"
+          ]
+        },
+        "transaction_id": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Payment transaction identifier (optional)",
+          "examples": [
+            "txn_1234567890",
+            "pay_abc123xyz"
+          ]
+        },
+        "features": {
+          "type": "object",
+          "description": "Feature configuration (overrides tier defaults)",
+          "properties": {
+            "instance_type": {
+              "type": "string",
+              "enum": [
+                "t3.micro",
+                "t3.small",
+                "t3.medium",
+                "t3.large",
+                "t3.xlarge",
+                "c5.large",
+                "c5.xlarge"
+              ],
+              "description": "EC2 instance type",
+              "default": "t3.medium"
+            },
+            "storage_gb": {
+              "type": "integer",
+              "minimum": 20,
+              "maximum": 1000,
+              "description": "Storage size in GB",
+              "default": 100
+            },
+            "bandwidth_gb": {
+              "type": "integer",
+              "minimum": 50,
+              "maximum": 10000,
+              "description": "Monthly bandwidth in GB",
+              "default": 500
+            },
+            "email_accounts": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500,
+              "description": "Maximum email accounts",
+              "default": 50
+            },
+            "databases": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Maximum databases",
+              "default": 10
+            },
+            "ssl_enabled": {
+              "type": "boolean",
+              "description": "Enable SSL/TLS certificates",
+              "default": true
+            },
+            "backups_enabled": {
+              "type": "boolean",
+              "description": "Enable automated backups",
+              "default": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Additional metadata for tracking and billing",
+          "properties": {
+            "plan_name": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Human-readable plan name",
+              "examples": [
+                "Basic Hosting Plan",
+                "Standard Business Plan"
+              ]
+            },
+            "billing_cycle": {
+              "type": "string",
+              "enum": [
+                "monthly",
+                "quarterly",
+                "annual",
+                "biennial"
+              ],
+              "description": "Billing cycle"
+            },
+            "amount_paid": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Amount paid for this period",
+              "examples": [
+                35.00,
+                85.00,
+                150.00
+              ]
+            },
+            "currency": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$",
+              "description": "Currency code (ISO 4217)",
+              "default": "USD",
+              "examples": [
+                "USD",
+                "EUR",
+                "GBP"
+              ]
+            },
+            "customer_ip": {
+              "type": "string",
+              "format": "ipv4",
+              "description": "Customer IP address during signup",
+              "examples": [
+                "203.0.113.45",
+                "198.51.100.23"
+              ]
+            },
+            "signup_date": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Signup timestamp (ISO 8601)",
+              "examples": [
+                "2024-01-29T14:30:00Z",
+                "2024-01-29T14:30:00+00:00"
+              ]
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "event_type": "provision_customer",
+      "client_payload": {
+        "domain": "example.com",
+        "email": "customer@example.com",
+        "tier": "basic",
+        "client_id": "cust_001"
+      }
+    },
+    {
+      "event_type": "provision_customer",
+      "client_payload": {
+        "domain": "business-site.io",
+        "email": "admin@business-site.io",
+        "tier": "standard",
+        "client_id": "cust_002",
+        "transaction_id": "txn_abc123",
+        "features": {
+          "instance_type": "t3.medium",
+          "storage_gb": 150,
+          "bandwidth_gb": 750,
+          "email_accounts": 75,
+          "databases": 15,
+          "ssl_enabled": true,
+          "backups_enabled": true
+        },
+        "metadata": {
+          "plan_name": "Standard Business Plan",
+          "billing_cycle": "annual",
+          "amount_paid": 900.00,
+          "currency": "USD",
+          "customer_ip": "198.51.100.23",
+          "signup_date": "2024-01-29T15:00:00Z"
+        }
+      }
+    }
+  ]
+}
