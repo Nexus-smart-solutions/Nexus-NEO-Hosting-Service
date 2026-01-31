@@ -3,18 +3,16 @@ name: "NEO Infrastructure Automation"
 on:
   repository_dispatch:
     types: [provision_customer]
-
   workflow_dispatch:
     inputs:
       domain:
         description: 'Customer Domain Name'
         required: true
-        default: 'example.com'
       email:
         description: 'Customer Email'
         required: true
       tier:
-        description: 'Subscription Tier (basic/premium)'
+        description: 'Subscription Tier'
         required: true
         default: 'basic'
       client_id:
@@ -25,6 +23,11 @@ jobs:
   provision:
     name: "Deploy Customer Infrastructure"
     runs-on: ubuntu-latest
+    
+    # ده الجزء السحري: هيخلي كل الخطوات تشتغل من المكان اللي فيه الـ main.tf
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout Repository
@@ -42,20 +45,24 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
 
-      - name: Terraform Init & Apply
+      - name: Terraform Run
         run: |
+          # 1. البحث عن المجلد والتأكد من وجود الملفات
           TF_PATH=$(find . -name "main.tf" -not -path "*/.*" -print -quit)
           TF_DIR=$(dirname "$TF_PATH")
+          echo "Working Directory: $TF_DIR"
           cd "$TF_DIR"
+          
+          # 2. طباعة المتغيرات للتأكد إن تيرارفورم شايفهم (للتصحيح فقط)
+          echo "Variables found in files:"
+          grep -h "variable" *.tf || echo "No variables found!"
 
-          echo "Initializing Terraform..."
+          # 3. التنفيذ
           terraform init -reconfigure \
             -backend-config="bucket=hosting-company-terraform-state-093063750620" \
             -backend-config="region=us-east-2" \
-            -backend-config="dynamodb_table=terraform-state-locks" \
-            -backend-config="encrypt=true"
+            -backend-config="dynamodb_table=terraform-state-locks"
 
-          echo "Running Terraform Apply..."
           terraform apply -auto-approve \
             -var="customer_domain=${{ github.event.client_payload.domain || github.event.inputs.domain }}" \
             -var="customer_email=${{ github.event.client_payload.email || github.event.inputs.email }}" \
