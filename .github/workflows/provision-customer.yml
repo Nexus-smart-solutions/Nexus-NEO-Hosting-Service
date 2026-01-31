@@ -24,7 +24,6 @@ jobs:
     name: "Deploy Customer Infrastructure"
     runs-on: ubuntu-latest
     
-    # ده الجزء السحري: هيخلي كل الخطوات تشتغل من المكان اللي فيه الـ main.tf
     defaults:
       run:
         shell: bash
@@ -47,17 +46,14 @@ jobs:
 
       - name: Terraform Run
         run: |
-          # 1. البحث عن المجلد والتأكد من وجود الملفات
           TF_PATH=$(find . -name "main.tf" -not -path "*/.*" -print -quit)
           TF_DIR=$(dirname "$TF_PATH")
           echo "Working Directory: $TF_DIR"
           cd "$TF_DIR"
           
-          # 2. طباعة المتغيرات للتأكد إن تيرارفورم شايفهم (للتصحيح فقط)
           echo "Variables found in files:"
           grep -h "variable" *.tf || echo "No variables found!"
 
-          # 3. التنفيذ
           terraform init -reconfigure \
             -backend-config="bucket=hosting-company-terraform-state-093063750620" \
             -backend-config="region=us-east-2" \
