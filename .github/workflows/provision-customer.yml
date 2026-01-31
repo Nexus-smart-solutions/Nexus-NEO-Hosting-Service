@@ -5,29 +5,14 @@ on:
     types: [provision_customer]
   workflow_dispatch:
     inputs:
-      domain:
-        description: 'Customer Domain Name'
-        required: true
-      email:
-        description: 'Customer Email'
-        required: true
-      tier:
-        description: 'Subscription Tier'
-        required: true
-        default: 'basic'
-      client_id:
-        description: 'Client ID'
-        required: true
+      domain: { required: true, description: 'Domain' }
+      email: { required: true, description: 'Email' }
+      tier: { required: true, description: 'Tier', default: 'basic' }
+      client_id: { required: true, description: 'Client ID' }
 
 jobs:
   provision:
-    name: "Deploy Customer Infrastructure"
     runs-on: ubuntu-latest
-    
-    defaults:
-      run:
-        shell: bash
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -47,22 +32,23 @@ jobs:
       - name: Terraform Run
         working-directory: environments/customers/template/
         run: |
-          # 1. إصلاح مسار الموديولات:
-          # بما أن main.tf يبحث في ../../../modules، سنقوم بعمل رابط (Symlink) لمجلد الموديولات الحقيقي
-          mkdir -p ../../../
-          ln -s $(pwd)/../../../../modules ../../../modules
-          
-          echo "Checking modules path..."
-          ls -ld ../../../modules
+          # 1. التحقق من الموديولات (خطوة أمان)
+          if [ -d "../../../modules" ]; then
+            echo "✅ Modules path verified at ../../../modules"
+          else
+            echo "❌ Error: Modules folder missing relative to template!"
+            exit 1
+          fi
 
-          # 2. تهيئة تيرارفورم
+          # 2. Initialization
           terraform init -reconfigure \
             -backend-config="bucket=hosting-company-terraform-state-093063750620" \
             -backend-config="region=us-east-2" \
             -backend-config="key=customers/${{ github.event.client_payload.domain || github.event.inputs.domain }}/terraform.tfstate" \
             -backend-config="dynamodb_table=terraform-state-locks"
 
-          # 3. التنفيذ مع تمرير كافة المتغيرات
+          # 3. Apply
+          # لاحظ إضافة instance_type و data_volume_size لأن ملف variables.tf يطلبهما
           terraform apply -auto-approve \
             -var="customer_domain=${{ github.event.client_payload.domain || github.event.inputs.domain }}" \
             -var="customer_email=${{ github.event.client_payload.email || github.event.inputs.email }}" \
