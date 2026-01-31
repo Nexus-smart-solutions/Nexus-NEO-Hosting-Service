@@ -45,21 +45,24 @@ jobs:
           aws-region: us-east-2
 
       - name: Terraform Run
-        # هذا السطر يجبر تيرارفورم على العمل داخل المجلد المطلوب فقط
         working-directory: environments/customers/template/
         run: |
-          # 1. طباعة الملفات للتأكد من وجودها
-          echo "Working in directory: $(pwd)"
-          ls -F
+          # 1. إصلاح مسار الموديولات:
+          # بما أن main.tf يبحث في ../../../modules، سنقوم بعمل رابط (Symlink) لمجلد الموديولات الحقيقي
+          mkdir -p ../../../
+          ln -s $(pwd)/../../../../modules ../../../modules
+          
+          echo "Checking modules path..."
+          ls -ld ../../../modules
 
-          # 2. تهيئة تيرارفورم مع إعدادات الباك إند الديناميكية
+          # 2. تهيئة تيرارفورم
           terraform init -reconfigure \
             -backend-config="bucket=hosting-company-terraform-state-093063750620" \
             -backend-config="region=us-east-2" \
             -backend-config="key=customers/${{ github.event.client_payload.domain || github.event.inputs.domain }}/terraform.tfstate" \
             -backend-config="dynamodb_table=terraform-state-locks"
 
-          # 3. تنفيذ الـ Apply مع تمرير كل المتغيرات التي يطلبها ملف variables.tf
+          # 3. التنفيذ مع تمرير كافة المتغيرات
           terraform apply -auto-approve \
             -var="customer_domain=${{ github.event.client_payload.domain || github.event.inputs.domain }}" \
             -var="customer_email=${{ github.event.client_payload.email || github.event.inputs.email }}" \
