@@ -46,18 +46,29 @@ jobs:
 
       - name: Terraform Run
         run: |
-          TF_PATH=$(find . -name "main.tf" -not -path "*/.*" -print -quit)
-          TF_DIR=$(dirname "$TF_PATH")
-          echo "Working Directory: $TF_DIR"
-          cd "$TF_DIR"
+          # 1. التأكد من مكان الملفات
+          echo "Checking files in current directory..."
+          ls -R
           
-          echo "Variables found in files:"
-          grep -h "variable" *.tf || echo "No variables found!"
+          # 2. البحث عن ملف main.tf ودخول الفولدر بتاعه
+          TF_FILE=$(find . -name "main.tf" -not -path "*/.*" -print -quit)
+          if [ -z "$TF_FILE" ]; then
+            echo "ERROR: main.tf not found anywhere!"
+            exit 1
+          fi
+          
+          TF_DIR=$(dirname "$TF_FILE")
+          cd "$TF_DIR"
+          echo "Moved to directory: $TF_DIR"
 
+          # 3. التأكد إن المتغيرات مكتوبة جوه الملف فعلاً
+          echo "Content of main.tf (First 15 lines):"
+          head -n 15 main.tf
+
+          # 4. تنفيذ تيرارفورم
           terraform init -reconfigure \
             -backend-config="bucket=hosting-company-terraform-state-093063750620" \
-            -backend-config="region=us-east-2" \
-            -backend-config="dynamodb_table=terraform-state-locks"
+            -backend-config="region=us-east-2"
 
           terraform apply -auto-approve \
             -var="customer_domain=${{ github.event.client_payload.domain || github.event.inputs.domain }}" \
