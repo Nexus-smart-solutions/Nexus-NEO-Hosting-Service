@@ -1,5 +1,5 @@
 # =================================================================
-# 1. TERRAFORM CONFIGURATION & BACKEND
+# TERRAFORM CONFIGURATION & BACKEND
 # =================================================================
 
 terraform {
@@ -20,58 +20,26 @@ terraform {
   }
 }
 
-# =================================================================
-# 2. PROVIDER
-# =================================================================
-
 provider "aws" {
   region = var.region
 }
 
 # =================================================================
-# 3. VARIABLES 
+# INFRASTRUCTURE RESOURCES
 # =================================================================
 
-variable "region" {
-  description = "Target AWS region"
-  type        = string
-  default     = "us-east-2"
-}
-
-variable "organization_name" {
-  description = "Standard prefix"
-  type        = string
-  default     = "hosting-company"
-}
-
-variable "customer_domain" {
-  type = string
-}
-
-variable "customer_email" {
-  type = string
-}
-
-variable "plan_tier" {
-  type = string
-}
-
-variable "client_id" {
-  type = string
-}
-
-# =================================================================
-# 4. INFRASTRUCTURE RESOURCES
-# =================================================================
-
+# S3 Bucket for Terraform State Storage
 resource "aws_s3_bucket" "terraform_state" {
   bucket = "hosting-company-terraform-state-093063750620"
+
   tags = {
     Name        = "Terraform State Storage"
+    Environment = "Core-Infrastructure"
     ManagedBy   = "Terraform"
   }
 }
 
+# Enable Object Versioning
 resource "aws_s3_bucket_versioning" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
   versioning_configuration {
@@ -79,6 +47,7 @@ resource "aws_s3_bucket_versioning" "terraform_state" {
   }
 }
 
+# DynamoDB Table for State Locking
 resource "aws_dynamodb_table" "terraform_lock" {
   name         = "terraform-state-locks"
   billing_mode = "PAY_PER_REQUEST"
@@ -88,10 +57,15 @@ resource "aws_dynamodb_table" "terraform_lock" {
     name = "LockID"
     type = "S"
   }
+
+  tags = {
+    Name        = "Terraform Lock Table"
+    Environment = "Core-Infrastructure"
+  }
 }
 
 # =================================================================
-# 5. DATA & OUTPUTS
+# DATA SOURCES AND OUTPUTS
 # =================================================================
 
 data "aws_caller_identity" "current" {}
