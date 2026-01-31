@@ -25,24 +25,27 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
 
-      - name: Locate and Run Terraform
+      - name: Locate and Initialize Terraform
         run: |
-          echo "--- Current Directory Content ---"
-          ls -R
-          
-          echo "--- Searching for main.tf ---"
+          echo "Step 1: Searching for Terraform configuration..."
+          # Dynamically find the directory containing main.tf
           TF_PATH=$(find . -name "main.tf" -print -quit)
           
           if [ -z "$TF_PATH" ]; then
-            echo "CRITICAL ERROR: main.tf not found anywhere in the repo!"
+            echo "Error: main.tf not found in the repository!"
             exit 1
           fi
           
           TF_DIR=$(dirname "$TF_PATH")
-          echo "Found Terraform files in: $TF_DIR"
-          
+          echo "Terraform directory found: $TF_DIR"
           cd "$TF_DIR"
-          terraform init
+
+          echo "Step 2: Terraform Initialization"
+          # Initialize with the S3 Backend we manually created
+          terraform init -backend-config="bucket=hosting-company-terraform-state-093063750620"
+
+          echo "Step 3: Terraform Apply"
+          # Execute the deployment using payload data from the API trigger
           terraform apply -auto-approve \
             -var="customer_domain=${{ github.event.client_payload.domain }}" \
             -var="customer_email=${{ github.event.client_payload.email }}" \
