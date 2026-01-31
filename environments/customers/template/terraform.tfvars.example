@@ -1,0 +1,33 @@
+# ===================================
+# EXAMPLE TERRAFORM VARIABLES
+# ===================================
+# This file shows the expected variable format
+# GitHub Actions will generate the actual terraform.tfvars
+
+# Variables passed from GitHub Actions workflow
+customer_domain = "cpanel.example.com"
+customer_email  = "customer@example.com"
+plan_tier       = "standard"
+client_id       = "cust_abc123"
+
+# Infrastructure configuration
+environment      = "production"
+region           = "us-east-1"
+vpc_cidr         = "10.0.0.0/16"
+instance_type    = "t3.medium"
+root_volume_size = 50
+data_volume_size = 100
+
+# Feature flags
+enable_backups        = true
+backup_retention_days = 30
+enable_monitoring     = true
+
+# Resource tags
+tags = {
+  Customer      = "example.com"
+  ClientID      = "cust_abc123"
+  Tier          = "standard"
+  ManagedBy     = "GitHub-Actions"
+  ProvisionedAt = "2024-01-31T00:00:00Z"
+}
