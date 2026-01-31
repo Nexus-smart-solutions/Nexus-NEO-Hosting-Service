@@ -5,53 +5,153 @@ on:
     types: [provision_customer]
   workflow_dispatch:
     inputs:
-      domain: { required: true, description: 'Domain' }
-      email: { required: true, description: 'Email' }
-      tier: { required: true, description: 'Tier', default: 'basic' }
-      client_id: { required: true, description: 'Client ID' }
+      domain: 
+        required: true
+        description: 'Domain'
+      email: 
+        required: true
+        description: 'Email'
+      tier: 
+        required: true
+        description: 'Tier'
+        default: 'basic'
+      client_id: 
+        required: true
+        description: 'Client ID'
 
 jobs:
   provision:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-
+      
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
-
+      
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
-
-      - name: Terraform Run
+      
+      - name: Debug - Check Repository Structure
         run: |
-          # 1. الدخول لمجلد العمل
-          cd environments/customers/template/
-
-          # 2. الحل السحري: نسخ مجلد الموديولات من الـ Root ليكون بجانب الـ main.tf
-          # ده هيخلي المسار ../../../modules شغال لأنه هيقرأ من الـ Runner
-          mkdir -p ../../../
-          cp -r ../../../../modules ../../../modules
+          echo "📍 Current directory: $(pwd)"
+          echo "📁 Repository structure:"
+          ls -la
+          echo ""
+          echo "🔍 Checking modules directory:"
+          ls -la modules/ 2>/dev/null || echo "❌ modules/ not found in root"
+          echo ""
+          echo "📂 Checking template directory:"
+          ls -la environments/customers/template/ 2>/dev/null || echo "❌ template/ not found"
+      
+      - name: Terraform Run
+        env:
+          CUSTOMER_DOMAIN: ${{ github.event.client_payload.domain || github.event.inputs.domain }}
+          CUSTOMER_EMAIL: ${{ github.event.client_payload.email || github.event.inputs.email }}
+          PLAN_TIER: ${{ github.event.client_payload.tier || github.event.inputs.tier }}
+          CLIENT_ID: ${{ github.event.client_payload.client_id || github.event.inputs.client_id }}
+        run: |
+          # Get the repository root
+          REPO_ROOT=$(pwd)
           
-          echo "✅ Modules synced to internal path."
-
-          # 3. التشغيل
+          # Navigate to working directory
+          cd environments/customers/template/
+          
+          echo "🔧 Setting up module symlinks..."
+          
+          # Create the correct path structure for modules
+          # From template/ we need to go up 3 levels to reach repo root
+          # Then access modules/
+          
+          # Remove any existing broken symlinks or directories
+          rm -rf ../../../modules 2>/dev/null || true
+          
+          # Create parent directories if needed
+          mkdir -p ../../..
+          
+          # Create symbolic link to modules directory
+          ln -s "$REPO_ROOT/modules" ../../../modules
+          
+          # Verify the symlink worked
+          if [ -d "../../../modules/network" ]; then
+            echo "✅ Module symlink created successfully"
+            ls -la ../../../modules/
+          else
+            echo "❌ Failed to create module symlink"
+            echo "Attempting alternative approach..."
+            
+            # Fallback: copy modules instead of symlinking
+            mkdir -p ../../../modules
+            cp -r "$REPO_ROOT/modules/"* ../../../modules/
+            
+            if [ -d "../../../modules/network" ]; then
+              echo "✅ Modules copied successfully"
+            else
+              echo "❌ Failed to setup modules"
+              exit 1
+            fi
+          fi
+          
+          echo ""
+          echo "🚀 Initializing Terraform..."
+          
           terraform init -reconfigure \
             -backend-config="bucket=hosting-company-terraform-state-093063750620" \
             -backend-config="region=us-east-2" \
-            -backend-config="key=customers/${{ github.event.client_payload.domain || github.event.inputs.domain }}/terraform.tfstate"
-
+            -backend-config="key=customers/${CUSTOMER_DOMAIN}/terraform.tfstate"
+          
+          echo ""
+          echo "📋 Planning Terraform changes..."
+          
+          terraform plan \
+            -var="customer_domain=${CUSTOMER_DOMAIN}" \
+            -var="customer_email=${CUSTOMER_EMAIL}" \
+            -var="plan_tier=${PLAN_TIER}" \
+            -var="client_id=${CLIENT_ID}" \
+            -var="instance_type=t3.medium" \
+            -var="data_volume_size=100" \
+            -var="region=us-east-2"
+          
+          echo ""
+          echo "✨ Applying Terraform configuration..."
+          
           terraform apply -auto-approve \
+            -var="customer_domain=${CUSTOMER_DOMAIN}" \
+            -var="customer_email=${CUSTOMER_EMAIL}" \
+            -var="plan_tier=${PLAN_TIER}" \
+            -var="client_id=${CLIENT_ID}" \
+            -var="instance_type=t3.medium" \
+            -var="data_volume_size=100" \
+            -var="region=us-east-2"
+          
+          echo ""
+          echo "🎉 Provisioning completed successfully!"
+      
+      - name: Capture Outputs
+        if: success()
+        run: |
+          cd environments/customers/template/
+          echo "📤 Terraform Outputs:"
+          terraform output -json > outputs.json
+          cat outputs.json
+      
+      - name: Cleanup on Failure
+        if: failure()
+        run: |
+          cd environments/customers/template/
+          echo "🧹 Cleaning up failed deployment..."
+          terraform destroy -auto-approve \
             -var="customer_domain=${{ github.event.client_payload.domain || github.event.inputs.domain }}" \
             -var="customer_email=${{ github.event.client_payload.email || github.event.inputs.email }}" \
             -var="plan_tier=${{ github.event.client_payload.tier || github.event.inputs.tier }}" \
             -var="client_id=${{ github.event.client_payload.client_id || github.event.inputs.client_id }}" \
             -var="instance_type=t3.medium" \
             -var="data_volume_size=100" \
-            -var="region=us-east-2"
+            -var="region=us-east-2" || true
