@@ -1,16 +1,16 @@
-name: "NEO Infrastructure Automation"
+name: "NEO Infrastructure - Force Refresh"
 
 on:
-  repository_dispatch:
-    types: [provision_customer]
   workflow_dispatch:
     inputs:
       domain: 
         required: true
         description: 'Domain'
+        default: 'test.example.com'
       email: 
         required: true
         description: 'Email'
+        default: 'test@example.com'
       tier: 
         required: true
         description: 'Tier'
@@ -18,14 +18,30 @@ on:
       client_id: 
         required: true
         description: 'Client ID'
+        default: 'test-123'
 
 jobs:
   provision:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout Repository
+      - name: Checkout Repository (Force Clean)
         uses: actions/checkout@v3
+        with:
+          clean: true
+          fetch-depth: 0
+      
+      - name: Verify Files
+        run: |
+          echo "🔍 Checking main.tf content:"
+          echo "================================"
+          cat environments/customers/template/main.tf | head -20
+          echo "================================"
+          echo ""
+          echo "🔍 Checking backend.tf content:"
+          echo "================================"
+          cat environments/customers/template/backend.tf
+          echo "================================"
       
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -41,25 +57,22 @@ jobs:
       
       - name: Provision Infrastructure
         env:
-          CUSTOMER_DOMAIN: ${{ github.event.client_payload.domain || github.event.inputs.domain }}
-          CUSTOMER_EMAIL: ${{ github.event.client_payload.email || github.event.inputs.email }}
-          PLAN_TIER: ${{ github.event.client_payload.tier || github.event.inputs.tier }}
-          CLIENT_ID: ${{ github.event.client_payload.client_id || github.event.inputs.client_id }}
+          CUSTOMER_DOMAIN: ${{ github.event.inputs.domain }}
+          CUSTOMER_EMAIL: ${{ github.event.inputs.email }}
+          PLAN_TIER: ${{ github.event.inputs.tier }}
+          CLIENT_ID: ${{ github.event.inputs.client_id }}
         run: |
-          # Navigate to template directory
           cd environments/customers/template/
           
           echo "🚀 Starting Terraform provisioning for ${CUSTOMER_DOMAIN}"
           echo "=================================================="
           
-          # Initialize Terraform
           echo "📦 Initializing Terraform..."
           terraform init -reconfigure \
             -backend-config="bucket=hosting-company-terraform-state-093063750620" \
             -backend-config="region=us-east-2" \
             -backend-config="key=customers/${CUSTOMER_DOMAIN}/terraform.tfstate"
           
-          # Plan
           echo ""
           echo "📋 Planning infrastructure changes..."
           terraform plan \
@@ -71,7 +84,6 @@ jobs:
             -var="data_volume_size=100" \
             -var="region=us-east-2"
           
-          # Apply
           echo ""
           echo "✨ Applying infrastructure changes..."
           terraform apply -auto-approve \
@@ -91,24 +103,4 @@ jobs:
         run: |
           cd environments/customers/template/
           echo "📤 Infrastructure Outputs:"
-          terraform output -json > outputs.json
-          cat outputs.json
-          
-          echo ""
-          echo "✅ Customer infrastructure ready!"
-      
-      - name: Cleanup on Failure
-        if: failure()
-        run: |
-          cd environments/customers/template/
-          echo "🧹 Cleaning up failed deployment..."
-          terraform destroy -auto-approve \
-            -var="customer_domain=${{ github.event.client_payload.domain || github.event.inputs.domain }}" \
-            -var="customer_email=${{ github.event.client_payload.email || github.event.inputs.email }}" \
-            -var="plan_tier=${{ github.event.client_payload.tier || github.event.inputs.tier }}" \
-            -var="client_id=${{ github.event.client_payload.client_id || github.event.inputs.client_id }}" \
-            -var="instance_type=t3.medium" \
-            -var="data_volume_size=100" \
-            -var="region=us-east-2" || true
-          
-          echo "⚠️ Deployment failed and resources cleaned up"
+          terraform output -json
