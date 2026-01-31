@@ -39,77 +39,29 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
       
-      - name: Debug - Check Repository Structure
-        run: |
-          echo "📍 Current directory: $(pwd)"
-          echo "📁 Repository structure:"
-          ls -la
-          echo ""
-          echo "🔍 Checking modules directory:"
-          ls -la modules/ 2>/dev/null || echo "❌ modules/ not found in root"
-          echo ""
-          echo "📂 Checking template directory:"
-          ls -la environments/customers/template/ 2>/dev/null || echo "❌ template/ not found"
-      
-      - name: Terraform Run
+      - name: Provision Infrastructure
         env:
           CUSTOMER_DOMAIN: ${{ github.event.client_payload.domain || github.event.inputs.domain }}
           CUSTOMER_EMAIL: ${{ github.event.client_payload.email || github.event.inputs.email }}
           PLAN_TIER: ${{ github.event.client_payload.tier || github.event.inputs.tier }}
           CLIENT_ID: ${{ github.event.client_payload.client_id || github.event.inputs.client_id }}
         run: |
-          # Get the repository root
-          REPO_ROOT=$(pwd)
-          
-          # Navigate to working directory
+          # Navigate to template directory
           cd environments/customers/template/
           
-          echo "🔧 Setting up module symlinks..."
+          echo "🚀 Starting Terraform provisioning for ${CUSTOMER_DOMAIN}"
+          echo "=================================================="
           
-          # Create the correct path structure for modules
-          # From template/ we need to go up 3 levels to reach repo root
-          # Then access modules/
-          
-          # Remove any existing broken symlinks or directories
-          rm -rf ../../../modules 2>/dev/null || true
-          
-          # Create parent directories if needed
-          mkdir -p ../../..
-          
-          # Create symbolic link to modules directory
-          ln -s "$REPO_ROOT/modules" ../../../modules
-          
-          # Verify the symlink worked
-          if [ -d "../../../modules/network" ]; then
-            echo "✅ Module symlink created successfully"
-            ls -la ../../../modules/
-          else
-            echo "❌ Failed to create module symlink"
-            echo "Attempting alternative approach..."
-            
-            # Fallback: copy modules instead of symlinking
-            mkdir -p ../../../modules
-            cp -r "$REPO_ROOT/modules/"* ../../../modules/
-            
-            if [ -d "../../../modules/network" ]; then
-              echo "✅ Modules copied successfully"
-            else
-              echo "❌ Failed to setup modules"
-              exit 1
-            fi
-          fi
-          
-          echo ""
-          echo "🚀 Initializing Terraform..."
-          
+          # Initialize Terraform
+          echo "📦 Initializing Terraform..."
           terraform init -reconfigure \
             -backend-config="bucket=hosting-company-terraform-state-093063750620" \
             -backend-config="region=us-east-2" \
             -backend-config="key=customers/${CUSTOMER_DOMAIN}/terraform.tfstate"
           
+          # Plan
           echo ""
-          echo "📋 Planning Terraform changes..."
-          
+          echo "📋 Planning infrastructure changes..."
           terraform plan \
             -var="customer_domain=${CUSTOMER_DOMAIN}" \
             -var="customer_email=${CUSTOMER_EMAIL}" \
@@ -119,9 +71,9 @@ jobs:
             -var="data_volume_size=100" \
             -var="region=us-east-2"
           
+          # Apply
           echo ""
-          echo "✨ Applying Terraform configuration..."
-          
+          echo "✨ Applying infrastructure changes..."
           terraform apply -auto-approve \
             -var="customer_domain=${CUSTOMER_DOMAIN}" \
             -var="customer_email=${CUSTOMER_EMAIL}" \
@@ -138,9 +90,12 @@ jobs:
         if: success()
         run: |
           cd environments/customers/template/
-          echo "📤 Terraform Outputs:"
+          echo "📤 Infrastructure Outputs:"
           terraform output -json > outputs.json
           cat outputs.json
+          
+          echo ""
+          echo "✅ Customer infrastructure ready!"
       
       - name: Cleanup on Failure
         if: failure()
@@ -155,3 +110,5 @@ jobs:
             -var="instance_type=t3.medium" \
             -var="data_volume_size=100" \
             -var="region=us-east-2" || true
+          
+          echo "⚠️ Deployment failed and resources cleaned up"
