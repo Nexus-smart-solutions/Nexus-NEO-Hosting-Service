@@ -27,25 +27,20 @@ jobs:
 
       - name: Locate and Initialize Terraform
         run: |
-          echo "Step 1: Searching for Terraform configuration..."
-          # Dynamically find the directory containing main.tf
+          echo "Step 1: Finding Terraform directory..."
           TF_PATH=$(find . -name "main.tf" -print -quit)
-          
-          if [ -z "$TF_PATH" ]; then
-            echo "Error: main.tf not found in the repository!"
-            exit 1
-          fi
-          
           TF_DIR=$(dirname "$TF_PATH")
-          echo "Terraform directory found: $TF_DIR"
           cd "$TF_DIR"
 
-          echo "Step 2: Terraform Initialization"
-          # Initialize with the S3 Backend we manually created
-          terraform init -backend-config="bucket=hosting-company-terraform-state-093063750620"
+          echo "Step 2: Forcing Backend Initialization..."
+          # أمر الـ reconfigure هيجبر تيرارفورم إنه ينسى أي إعدادات قديمة ويستخدم اللي هنبعتهوله
+          terraform init -reconfigure \
+            -backend-config="bucket=hosting-company-terraform-state-093063750620" \
+            -backend-config="region=us-east-2" \
+            -backend-config="dynamodb_table=terraform-state-locks" \
+            -backend-config="encrypt=true"
 
           echo "Step 3: Terraform Apply"
-          # Execute the deployment using payload data from the API trigger
           terraform apply -auto-approve \
             -var="customer_domain=${{ github.event.client_payload.domain }}" \
             -var="customer_email=${{ github.event.client_payload.email }}" \
