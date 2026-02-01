@@ -59,7 +59,7 @@ resource "aws_instance" "hosting_server" {
   ami           = "ami-0fb653ca2d3203ac1" # Ubuntu in us-east-2
   instance_type = var.instance_type
 
-  user_data = templatefile("${path.module}/environments/customers/template/scripts/ssl_setup.sh", {
+  user_data = templatefile("${path.module}/scripts/ssl_setup.sh", {
     domain = var.customer_domain
     email  = var.customer_email
   })
