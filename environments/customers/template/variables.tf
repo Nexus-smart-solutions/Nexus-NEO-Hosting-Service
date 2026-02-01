@@ -39,7 +39,6 @@ variable "region" {
   default     = "us-east-2"
 }
 
-# --- Root Volume Defaults ---
 variable "root_volume_size" {
   description = "Root volume size in GB"
   type        = number
