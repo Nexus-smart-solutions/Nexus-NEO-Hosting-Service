@@ -24,6 +24,13 @@ variable "client_id" {
   type        = string
 }
 
+# DNS Configuration
+variable "hosted_zone_name" {
+  description = "The name of the parent hosted zone in Route 53"
+  type        = string
+  default     = "nexus-dxb.com"
+}
+
 # Additional required variables
 variable "environment" {
   description = "Environment name"
@@ -34,7 +41,7 @@ variable "environment" {
 variable "region" {
   description = "AWS region"
   type        = string
-  default     = "us-east-1"
+  default     = "us-east-2" # Set to us-east-2 to match your workflow region
 }
 
 variable "vpc_cidr" {
