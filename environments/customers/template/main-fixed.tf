@@ -1,82 +1,118 @@
-# ===================================
-# MAIN CONFIGURATION
-# ===================================
-# Calls the infrastructure modules
+# =================================================================
+# MAIN INFRASTRUCTURE CONFIGURATION - NEXUS NEO HOSTING
+# =================================================================
 
-terraform {
-  required_version = ">= 1.0"
-  # Backend configuration is in backend.tf - don't duplicate it here
+# 1. Route 53 Hosted Zone
+resource "aws_route53_zone" "customer_zone" {
+  name          = var.customer_domain
+  force_destroy = false
+
+  tags = {
+    Name        = "Zone-${var.customer_domain}"
+    Environment = var.environment
+    ClientID    = var.client_id
+  }
 }
 
-# Network Module
-module "network" {
-  source = "../../../modules/network"
-  
-  customer_domain = var.customer_domain
-  environment     = var.environment
-  vpc_cidr        = var.vpc_cidr
-  
-  public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
-  private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24"]
-  
-  enable_nat_gateway   = false
-  enable_vpc_flow_logs = true
-  
-  tags = merge(
-    var.tags,
-    {
-      Module = "network"
-    }
-  )
+# 2. Domain Registration (Purchasing the domain)
+resource "aws_route53domains_registered_domain" "domain_purchase" {
+  domain_name = var.customer_domain
+
+  admin_contact {
+    first_name     = var.registrant_first_name
+    last_name      = var.registrant_last_name
+    address_line_1 = var.registrant_address
+    city           = var.registrant_city
+    country_code   = var.registrant_country_code
+    email          = var.customer_email
+    phone_number   = var.registrant_phone
+    zip_code       = var.registrant_zip_code
+  }
+
+  registrant_contact {
+    first_name     = var.registrant_first_name
+    last_name      = var.registrant_last_name
+    address_line_1 = var.registrant_address
+    city           = var.registrant_city
+    country_code   = var.registrant_country_code
+    email          = var.customer_email
+    phone_number   = var.registrant_phone
+    zip_code       = var.registrant_zip_code
+  }
+
+  tech_contact {
+    first_name     = "Nexus"
+    last_name      = "Support"
+    address_line_1 = "Nexus HQ"
+    city           = "Dubai"
+    country_code   = "AE"
+    email          = "support@nexus-dxb.com"
+    phone_number   = "+971.000000000"
+    zip_code       = "00000"
+  }
+
+  auto_renew = true
 }
 
-# Security Module
-module "security" {
-  source = "../../../modules/security"
-  
-  vpc_id          = module.network.vpc_id
-  customer_domain = var.customer_domain
-  environment     = var.environment
-  
-  # Don't allow SSH/Admin from anywhere - use SSM Session Manager
-  allowed_ssh_cidrs   = []
-  allowed_admin_cidrs = []
-  
-  tags = merge(
-    var.tags,
-    {
-      Module = "security"
-    }
-  )
+# 3. EC2 Instance
+resource "aws_instance" "hosting_server" {
+  ami           = "ami-0fb653ca2d3203ac1" # Ubuntu in us-east-2
+  instance_type = var.instance_type
+
+  user_data = templatefile("${path.module}/scripts/ssl_setup.sh", {
+    domain = var.customer_domain
+    email  = var.customer_email
+  })
+
+  root_block_device {
+    volume_size = var.root_volume_size
+    volume_type = "gp3"
+  }
+
+  tags = {
+    Name      = "Server-${var.customer_domain}"
+    ClientID  = var.client_id
+    PlanTier  = var.plan_tier
+  }
 }
 
-# cPanel Server Module
-module "cpanel_server" {
-  source = "../../../modules/cpanel-server"
-  
-  customer_domain   = var.customer_domain
-  environment       = var.environment
-  vpc_id            = module.network.vpc_id
-  subnet_id         = module.network.public_subnet_ids[0]
-  security_group_id = module.security.cpanel_security_group_id
-  
-  instance_type     = var.instance_type
-  root_volume_size  = var.root_volume_size
-  data_volume_size  = var.data_volume_size
-  
-  # Use customer_email for admin notifications
-  admin_email = local.final_admin_email
-  
-  enable_backups        = var.enable_backups
-  backup_retention_days = var.backup_retention_days
-  enable_monitoring     = var.enable_monitoring
-  
-  tags = merge(
-    var.tags,
-    {
-      Module   = "cpanel-server"
-      ClientID = var.client_id
-      Tier     = local.tier_name
-    }
-  )
+# 4. Elastic IP
+resource "aws_eip" "server_ip" {
+  instance = aws_instance.hosting_server.id
+  domain   = "vpc"
+}
+
+# 5. DNS Records
+resource "aws_route53_record" "a_record" {
+  zone_id = aws_route53_zone.customer_zone.zone_id
+  name    = var.customer_domain
+  type    = "A"
+  ttl     = "300"
+  records = [aws_eip.server_ip.public_ip]
+}
+
+resource "aws_route53_record" "www_record" {
+  zone_id = aws_route53_zone.customer_zone.zone_id
+  name    = "www.${var.customer_domain}"
+  type    = "CNAME"
+  ttl     = "300"
+  records = [var.customer_domain]
+}
+
+# 6. EBS Storage Volume
+resource "aws_ebs_volume" "data_drive" {
+  availability_zone = aws_instance.hosting_server.availability_zone
+  size              = var.data_volume_size
+  type              = "gp3"
+
+  tags = {
+    Name     = "Data-${var.customer_domain}"
+    ClientID = var.client_id
+  }
+}
+
+resource "aws_volume_attachment" "ebs_att" {
+  device_name = "/dev/sdh"
+  volume_id   = aws_ebs_volume.data_drive.id
+  instance_id = aws_instance.hosting_server.id
 }
