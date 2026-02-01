@@ -1,107 +1,42 @@
-# ===================================
-# TEMPLATE VARIABLES
-# ===================================
-# Variables expected by GitHub Actions workflow
-
-# Required by workflow
-variable "customer_domain" {
-  description = "Customer domain name"
+# --- Domain Registration Info ---
+variable "registrant_first_name" {
+  description = "First name of the domain owner"
   type        = string
+  default     = "Nexus"
 }
 
-variable "customer_email" {
-  description = "Customer email address (from workflow)"
+variable "registrant_last_name" {
+  description = "Last name of the domain owner"
   type        = string
+  default     = "Customer"
 }
 
-variable "plan_tier" {
-  description = "Hosting plan tier (basic/standard/premium) - from workflow"
+variable "registrant_address" {
+  description = "Street address for domain registration"
   type        = string
+  default     = "Managed by Nexus NEO"
 }
 
-variable "client_id" {
-  description = "Unique customer identifier - from workflow"
+variable "registrant_city" {
+  description = "City for domain registration"
   type        = string
+  default     = "Dubai"
 }
 
-# DNS Configuration
-variable "hosted_zone_name" {
-  description = "The name of the parent hosted zone in Route 53"
+variable "registrant_country_code" {
+  description = "ISO Country code (e.g., AE, US, EG)"
   type        = string
-  default     = "nexus-dxb.com"
+  default     = "AE"
 }
 
-# Additional required variables
-variable "environment" {
-  description = "Environment name"
+variable "registrant_zip_code" {
+  description = "Zip/Postal code"
   type        = string
-  default     = "production"
+  default     = "00000"
 }
 
-variable "region" {
-  description = "AWS region"
+variable "registrant_phone" {
+  description = "Phone number in +CountryCode.Number format"
   type        = string
-  default     = "us-east-2" # Set to us-east-2 to match your workflow region
-}
-
-variable "vpc_cidr" {
-  description = "VPC CIDR block"
-  type        = string
-  default     = "10.0.0.0/16"
-}
-
-variable "instance_type" {
-  description = "EC2 instance type"
-  type        = string
-}
-
-variable "root_volume_size" {
-  description = "Root volume size in GB"
-  type        = number
-  default     = 50
-}
-
-variable "data_volume_size" {
-  description = "Data volume size in GB"
-  type        = number
-}
-
-variable "enable_backups" {
-  description = "Enable automated backups"
-  type        = bool
-  default     = true
-}
-
-variable "backup_retention_days" {
-  description = "Backup retention period in days"
-  type        = number
-  default     = 30
-}
-
-variable "enable_monitoring" {
-  description = "Enable CloudWatch monitoring"
-  type        = bool
-  default     = true
-}
-
-variable "tags" {
-  description = "Additional resource tags"
-  type        = map(string)
-  default     = {}
-}
-
-# Alias for compatibility
-variable "admin_email" {
-  description = "Admin email (alias for customer_email)"
-  type        = string
-  default     = ""
-}
-
-# Computed internally
-locals {
-  # Use customer_email if admin_email is not provided
-  final_admin_email = var.admin_email != "" ? var.admin_email : var.customer_email
-  
-  # Map plan_tier to actual tier name
-  tier_name = lower(var.plan_tier)
+  default     = "+971.000000000"
 }
