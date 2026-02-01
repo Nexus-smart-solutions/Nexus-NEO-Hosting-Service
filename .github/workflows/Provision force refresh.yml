@@ -5,51 +5,192 @@ on:
     inputs:
       domain: 
         required: true
-        description: 'Domain'
+        description: 'Customer Domain'
         default: 'test.example.com'
       email: 
         required: true
-        description: 'Email'
+        description: 'Customer Email'
         default: 'test@example.com'
       tier: 
         required: true
-        description: 'Tier'
+        description: 'Hosting Tier (basic/standard/premium)'
         default: 'basic'
       client_id: 
         required: true
-        description: 'Client ID'
+        description: 'Unique Client ID'
         default: 'test-123'
+
+env:
+  TERRAFORM_VERSION: '1.6.0'
+  AWS_REGION: 'us-east-2'
 
 jobs:
   provision:
+    name: Provision Customer Infrastructure
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     
     steps:
-      # 1. Checkout the repository
+      # =====================================================
+      # STEP 1: CLEAN CHECKOUT
+      # =====================================================
       - name: Checkout Repository (Force Clean)
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           clean: true
           fetch-depth: 0
+          
+      - name: Clear All Caches
+        run: |
+          echo "🧹 Clearing all caches..."
+          rm -rf .terraform
+          rm -rf .terraform.lock.hcl
+          rm -rf terraform.tfstate*
+          rm -rf **/.terraform
+          rm -rf **/.terraform.lock.hcl
+          find . -name ".terraform" -type d -exec rm -rf {} + 2>/dev/null || true
+          echo "✅ Cache cleared"
       
-      # 2. Set up Terraform Environment
+      # =====================================================
+      # STEP 2: SETUP TERRAFORM
+      # =====================================================
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.5.0
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
           terraform_wrapper: false
-
-      # 3. Configure AWS Credentials
+      
+      - name: Verify Terraform Installation
+        run: |
+          terraform version
+          echo "✅ Terraform installed successfully"
+      
+      # =====================================================
+      # STEP 3: CONFIGURE AWS
+      # =====================================================
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2
+          aws-region: ${{ env.AWS_REGION }}
       
-      # 4. Provision Infrastructure
-      - name: Provision Infrastructure
-        id: terraform_step
+      - name: Verify AWS Connection
+        run: |
+          echo "🔐 Testing AWS credentials..."
+          aws sts get-caller-identity
+          echo "✅ AWS credentials verified"
+      
+      # =====================================================
+      # STEP 4: VALIDATE INPUTS
+      # =====================================================
+      - name: Validate Inputs
+        run: |
+          echo "📋 Validating inputs..."
+          
+          DOMAIN="${{ github.event.inputs.domain }}"
+          EMAIL="${{ github.event.inputs.email }}"
+          TIER="${{ github.event.inputs.tier }}"
+          CLIENT_ID="${{ github.event.inputs.client_id }}"
+          
+          # Validate domain
+          if [[ ! "$DOMAIN" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]*\.[a-zA-Z]{2,}$ ]]; then
+            echo "❌ Invalid domain format: $DOMAIN"
+            exit 1
+          fi
+          
+          # Validate email
+          if [[ ! "$EMAIL" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+            echo "❌ Invalid email format: $EMAIL"
+            exit 1
+          fi
+          
+          # Validate tier
+          if [[ ! "$TIER" =~ ^(basic|standard|premium)$ ]]; then
+            echo "❌ Invalid tier: $TIER (must be: basic, standard, or premium)"
+            exit 1
+          fi
+          
+          # Validate client_id
+          if [[ ! "$CLIENT_ID" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            echo "❌ Invalid client_id format: $CLIENT_ID"
+            exit 1
+          fi
+          
+          echo "✅ All inputs validated successfully"
+          echo "Domain: $DOMAIN"
+          echo "Email: $EMAIL"
+          echo "Tier: $TIER"
+          echo "Client ID: $CLIENT_ID"
+      
+      # =====================================================
+      # STEP 5: PREPARE TERRAFORM WORKSPACE
+      # =====================================================
+      - name: Prepare Workspace
+        env:
+          CUSTOMER_DOMAIN: ${{ github.event.inputs.domain }}
+        run: |
+          cd environments/customers/template/
+          
+          echo "📁 Current directory: $(pwd)"
+          echo "📄 Files in directory:"
+          ls -la
+          
+          echo ""
+          echo "📝 Checking variables.tf..."
+          if [ -f "variables.tf" ]; then
+            echo "✅ variables.tf found"
+            echo "First 10 lines of variables.tf:"
+            head -n 10 variables.tf
+          else
+            echo "❌ variables.tf not found!"
+            exit 1
+          fi
+          
+          echo ""
+          echo "📝 Checking main.tf..."
+          if [ -f "main.tf" ]; then
+            echo "✅ main.tf found"
+          else
+            echo "❌ main.tf not found!"
+            exit 1
+          fi
+      
+      # =====================================================
+      # STEP 6: TERRAFORM INIT
+      # =====================================================
+      - name: Terraform Init
+        env:
+          CUSTOMER_DOMAIN: ${{ github.event.inputs.domain }}
+        run: |
+          cd environments/customers/template/
+          
+          echo "🔧 Initializing Terraform with fresh backend..."
+          
+          terraform init -reconfigure -upgrade \
+            -backend-config="bucket=hosting-company-terraform-state-093063750620" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="key=customers/${CUSTOMER_DOMAIN}/terraform.tfstate" \
+            -backend-config="encrypt=true"
+          
+          echo "✅ Terraform initialized successfully"
+      
+      # =====================================================
+      # STEP 7: TERRAFORM VALIDATE
+      # =====================================================
+      - name: Terraform Validate
+        run: |
+          cd environments/customers/template/
+          
+          echo "🔍 Validating Terraform configuration..."
+          terraform validate
+          
+          echo "✅ Configuration is valid"
+      
+      # =====================================================
+      # STEP 8: TERRAFORM PLAN
+      # =====================================================
+      - name: Terraform Plan
         env:
           CUSTOMER_DOMAIN: ${{ github.event.inputs.domain }}
           CUSTOMER_EMAIL: ${{ github.event.inputs.email }}
@@ -58,53 +199,177 @@ jobs:
         run: |
           cd environments/customers/template/
           
-          echo "📦 Initializing Terraform..."
-          terraform init -reconfigure \
-            -backend-config="bucket=hosting-company-terraform-state-093063750620" \
-            -backend-config="region=us-east-2" \
-            -backend-config="key=customers/${CUSTOMER_DOMAIN}/terraform.tfstate"
+          echo "📋 Creating execution plan..."
           
-          echo "✨ Applying Changes..."
-          terraform apply -auto-approve \
+          terraform plan \
             -var="customer_domain=${CUSTOMER_DOMAIN}" \
             -var="customer_email=${CUSTOMER_EMAIL}" \
             -var="plan_tier=${PLAN_TIER}" \
             -var="client_id=${CLIENT_ID}" \
             -var="instance_type=t3.medium" \
             -var="data_volume_size=100" \
-            -var="region=us-east-2"
-
-      # 5. Extract Outputs and Notify System (Safe Version)
-      - name: Extract Outputs and Notify System
-        if: success()
+            -var="region=${{ env.AWS_REGION }}" \
+            -out=tfplan
+          
+          echo "✅ Plan created successfully"
+      
+      # =====================================================
+      # STEP 9: TERRAFORM APPLY
+      # =====================================================
+      - name: Terraform Apply
+        id: terraform_apply
         env:
-          API_URL: ${{ secrets.SYSTEM_API_URL }} # تأكد من إضافة هذا في GitHub Secrets
+          CUSTOMER_DOMAIN: ${{ github.event.inputs.domain }}
+          CUSTOMER_EMAIL: ${{ github.event.inputs.email }}
+          PLAN_TIER: ${{ github.event.inputs.tier }}
+          CLIENT_ID: ${{ github.event.inputs.client_id }}
         run: |
           cd environments/customers/template/
           
-          # Extracting outputs correctly from our updated outputs.tf
-          IP=$(terraform output -raw server_public_ip)
-          URL=$(terraform output -raw website_url)
-          NS=$(terraform output -json domain_name_servers)
+          echo "🚀 Applying infrastructure changes..."
           
-          echo "🚀 Deployment successful for Domain: ${{ github.event.inputs.domain }}"
-
-          # Check if API_URL exists to avoid "Malformed input" error
-          if [ -z "$API_URL" ] || [ "$API_URL" == "غيرني لل API يسطاااااااااااااااااا" ]; then
-            echo "⚠️ API_URL is not set or is a placeholder. Skipping notification."
-            echo "Server IP: $IP."
-            echo "Website: $URL."
+          terraform apply -auto-approve tfplan
+          
+          echo "✅ Infrastructure provisioned successfully!"
+      
+      # =====================================================
+      # STEP 10: EXTRACT OUTPUTS
+      # =====================================================
+      - name: Extract Terraform Outputs
+        if: success()
+        id: outputs
+        run: |
+          cd environments/customers/template/
+          
+          echo "📊 Extracting deployment outputs..."
+          
+          # Extract outputs
+          ELASTIC_IP=$(terraform output -raw elastic_ip 2>/dev/null || echo "N/A")
+          WHM_URL=$(terraform output -raw whm_url 2>/dev/null || echo "N/A")
+          CPANEL_URL=$(terraform output -raw cpanel_url 2>/dev/null || echo "N/A")
+          INSTANCE_ID=$(terraform output -raw instance_id 2>/dev/null || echo "N/A")
+          BACKUP_BUCKET=$(terraform output -raw backup_bucket_name 2>/dev/null || echo "N/A")
+          
+          # Save outputs
+          echo "elastic_ip=$ELASTIC_IP" >> $GITHUB_OUTPUT
+          echo "whm_url=$WHM_URL" >> $GITHUB_OUTPUT
+          echo "cpanel_url=$CPANEL_URL" >> $GITHUB_OUTPUT
+          echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
+          echo "backup_bucket=$BACKUP_BUCKET" >> $GITHUB_OUTPUT
+          
+          # Save to file
+          terraform output -json > outputs.json
+          
+          echo "=========================================="
+          echo "Deployment Complete!"
+          echo "=========================================="
+          echo "Domain: ${{ github.event.inputs.domain }}"
+          echo "Elastic IP: $ELASTIC_IP"
+          echo "WHM URL: $WHM_URL"
+          echo "cPanel URL: $CPANEL_URL"
+          echo "Instance ID: $INSTANCE_ID"
+          echo "Backup Bucket: $BACKUP_BUCKET"
+          echo "=========================================="
+      
+      # =====================================================
+      # STEP 11: UPLOAD OUTPUTS
+      # =====================================================
+      - name: Upload Outputs Artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-outputs-${{ github.event.inputs.client_id }}
+          path: environments/customers/template/outputs.json
+          retention-days: 90
+      
+      # =====================================================
+      # STEP 12: NOTIFY BACKEND API
+      # =====================================================
+      - name: Notify Backend System
+        if: success()
+        env:
+          API_URL: ${{ secrets.SYSTEM_API_URL }}
+          API_TOKEN: ${{ secrets.SYSTEM_API_TOKEN }}
+        run: |
+          echo "📡 Sending notification to backend system..."
+          
+          ELASTIC_IP="${{ steps.outputs.outputs.elastic_ip }}"
+          WHM_URL="${{ steps.outputs.outputs.whm_url }}"
+          CPANEL_URL="${{ steps.outputs.outputs.cpanel_url }}"
+          
+          # Check if API_URL is configured
+          if [ -z "$API_URL" ] || [ "$API_URL" = "غيرني لل API يسطاااااااااااااااااا" ]; then
+            echo "⚠️ API_URL not configured. Skipping notification."
+            echo "✅ Deployment successful!"
+            echo "Server IP: $ELASTIC_IP"
+            echo "WHM: $WHM_URL"
+            echo "cPanel: $CPANEL_URL"
+            exit 0
+          fi
+          
+          # Send notification
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$API_URL" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $API_TOKEN" \
+            -d "{
+              \"client_id\": \"${{ github.event.inputs.client_id }}\",
+              \"domain\": \"${{ github.event.inputs.domain }}\",
+              \"email\": \"${{ github.event.inputs.email }}\",
+              \"tier\": \"${{ github.event.inputs.tier }}\",
+              \"ip_address\": \"$ELASTIC_IP\",
+              \"whm_url\": \"$WHM_URL\",
+              \"cpanel_url\": \"$CPANEL_URL\",
+              \"instance_id\": \"${{ steps.outputs.outputs.instance_id }}\",
+              \"backup_bucket\": \"${{ steps.outputs.outputs.backup_bucket }}\",
+              \"status\": \"provisioned\",
+              \"provisioned_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+            }")
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "✅ Notification sent successfully (HTTP $HTTP_CODE)"
+            echo "Response: $BODY"
           else
-            echo "Sending callback to system..."
-            curl -X POST "$API_URL" \
-              -H "Content-Type: application/json" \
-              -H "Authorization: Bearer ${{ secrets.SYSTEM_API_TOKEN }}" \
-              -d "{
-                \"client_id\": \"${{ github.event.inputs.client_id }}\",
-                \"ip_address\": \"$IP\",
-                \"domain\": \"${{ github.event.inputs.domain }}\",
-                \"website_url\": \"$URL\",
-                \"name_servers\": $NS,
-                \"status\": \"active\"
-              }"
+            echo "⚠️ Notification failed (HTTP $HTTP_CODE)"
+            echo "Response: $BODY"
+            echo "Deployment was successful but notification failed."
+          fi
+      
+      # =====================================================
+      # STEP 13: DEPLOYMENT SUMMARY
+      # =====================================================
+      - name: Generate Deployment Summary
+        if: always()
+        run: |
+          echo "# 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "## ✅ Status: SUCCESS" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ❌ Status: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📋 Customer Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Domain:** ${{ github.event.inputs.domain }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Email:** ${{ github.event.inputs.email }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tier:** ${{ github.event.inputs.tier }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Client ID:** ${{ github.event.inputs.client_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "## 🌐 Access Information" >> $GITHUB_STEP_SUMMARY
+            echo "- **Elastic IP:** ${{ steps.outputs.outputs.elastic_ip }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **WHM URL:** ${{ steps.outputs.outputs.whm_url }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **cPanel URL:** ${{ steps.outputs.outputs.cpanel_url }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Instance ID:** ${{ steps.outputs.outputs.instance_id }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## 📝 Next Steps" >> $GITHUB_STEP_SUMMARY
+            echo "1. Configure DNS records for the domain" >> $GITHUB_STEP_SUMMARY
+            echo "2. Access WHM to complete cPanel installation" >> $GITHUB_STEP_SUMMARY
+            echo "3. Create customer's first hosting account" >> $GITHUB_STEP_SUMMARY
+            echo "4. Send credentials to customer" >> $GITHUB_STEP_SUMMARY
           fi
