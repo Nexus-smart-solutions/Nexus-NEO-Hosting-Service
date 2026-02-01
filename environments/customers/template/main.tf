@@ -96,7 +96,6 @@ resource "aws_security_group" "cpanel_server" {
   description = "Security group for cPanel server"
   vpc_id      = aws_vpc.main.id
   
-  # HTTP
   ingress {
     description = "HTTP"
     from_port   = 80
@@ -105,7 +104,6 @@ resource "aws_security_group" "cpanel_server" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   
-  # HTTPS
   ingress {
     description = "HTTPS"
     from_port   = 443
@@ -114,7 +112,6 @@ resource "aws_security_group" "cpanel_server" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   
-  # WHM
   ingress {
     description = "WHM"
     from_port   = 2087
@@ -123,7 +120,6 @@ resource "aws_security_group" "cpanel_server" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   
-  # cPanel
   ingress {
     description = "cPanel"
     from_port   = 2083
@@ -132,7 +128,6 @@ resource "aws_security_group" "cpanel_server" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   
-  # Webmail
   ingress {
     description = "Webmail"
     from_port   = 2096
@@ -141,7 +136,6 @@ resource "aws_security_group" "cpanel_server" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   
-  # FTP
   ingress {
     description = "FTP"
     from_port   = 21
@@ -150,7 +144,6 @@ resource "aws_security_group" "cpanel_server" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   
-  # FTP Passive Mode
   ingress {
     description = "FTP Passive"
     from_port   = 49152
@@ -159,7 +152,6 @@ resource "aws_security_group" "cpanel_server" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   
-  # SMTP
   ingress {
     description = "SMTP"
     from_port   = 25
@@ -168,7 +160,6 @@ resource "aws_security_group" "cpanel_server" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   
-  # SMTP Submission
   ingress {
     description = "SMTP Submission"
     from_port   = 587
@@ -177,7 +168,6 @@ resource "aws_security_group" "cpanel_server" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   
-  # POP3
   ingress {
     description = "POP3"
     from_port   = 110
@@ -186,7 +176,6 @@ resource "aws_security_group" "cpanel_server" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   
-  # POP3S
   ingress {
     description = "POP3S"
     from_port   = 995
@@ -195,7 +184,6 @@ resource "aws_security_group" "cpanel_server" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   
-  # IMAP
   ingress {
     description = "IMAP"
     from_port   = 143
@@ -204,7 +192,6 @@ resource "aws_security_group" "cpanel_server" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   
-  # IMAPS
   ingress {
     description = "IMAPS"
     from_port   = 993
@@ -213,7 +200,6 @@ resource "aws_security_group" "cpanel_server" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   
-  # DNS
   ingress {
     description = "DNS TCP"
     from_port   = 53
@@ -230,7 +216,6 @@ resource "aws_security_group" "cpanel_server" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   
-  # Outbound
   egress {
     description = "All outbound traffic"
     from_port   = 0
@@ -386,7 +371,7 @@ resource "aws_instance" "hosting_server" {
   vpc_security_group_ids = [aws_security_group.cpanel_server.id]
   iam_instance_profile   = aws_iam_instance_profile.instance_profile.name
   
-  # Corrected path: Using path.module to find the script in the same directory structure
+  # User Data with script template
   user_data = templatefile("${path.module}/scripts/ssl_setup.sh", {
     domain = var.customer_domain
     email  = var.customer_email
