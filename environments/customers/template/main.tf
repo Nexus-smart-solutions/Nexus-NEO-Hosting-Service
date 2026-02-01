@@ -386,6 +386,7 @@ resource "aws_instance" "hosting_server" {
   vpc_security_group_ids = [aws_security_group.cpanel_server.id]
   iam_instance_profile   = aws_iam_instance_profile.instance_profile.name
   
+  # Corrected path: Using path.module to find the script in the same directory structure
   user_data = templatefile("${path.module}/scripts/ssl_setup.sh", {
     domain = var.customer_domain
     email  = var.customer_email
