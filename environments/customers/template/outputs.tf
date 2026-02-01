@@ -1,138 +1,40 @@
-# ===================================
-# OUTPUTS
-# ===================================
-# Terraform outputs for customer deployment
+# =================================================================
+# OUTPUTS - DATA FOR BACKEND & CUSTOMER EMAIL
+# =================================================================
 
-# Customer Information
-output "customer_domain" {
-  description = "Customer domain name"
-  value       = var.customer_domain
+# 1. The Public IP of the server (To show in the dashboard)
+output "server_public_ip" {
+  description = "The public IP address of the customer's dedicated server"
+  value       = aws_eip.server_ip.public_ip
 }
 
-output "customer_email" {
-  description = "Customer email address"
-  value       = var.customer_email
+# 2. Name Servers (Very important for the customer to see)
+output "domain_name_servers" {
+  description = "The Name Servers assigned to the customer's hosted zone"
+  value       = aws_route53_zone.customer_zone.name_servers
 }
 
-output "client_id" {
-  description = "Customer client ID"
-  value       = var.client_id
+# 3. Domain Expiry (To track and notify the customer before renewal)
+# Note: This attribute depends on the domain registration resource support
+output "domain_status" {
+  description = "Current status of the domain registration"
+  value       = aws_route53domains_registered_domain.domain_purchase.status_list
 }
 
-output "tier" {
-  description = "Hosting plan tier"
-  value       = local.tier_name
-}
-
-# Network Outputs
-output "vpc_id" {
-  description = "VPC identifier"
-  value       = module.network.vpc_id
-}
-
-output "public_subnet_ids" {
-  description = "Public subnet IDs"
-  value       = module.network.public_subnet_ids
-}
-
-# Server Access Information
-output "elastic_ip" {
-  description = "Server public IP address"
-  value       = module.cpanel_server.elastic_ip
-}
-
+# 4. Instance ID (For internal management/reboot/scaling)
 output "instance_id" {
-  description = "EC2 instance ID"
-  value       = module.cpanel_server.instance_id
+  description = "The ID of the EC2 instance"
+  value       = aws_instance.hosting_server.id
 }
 
-# Control Panel URLs
-output "whm_url" {
-  description = "WHM access URL"
-  value       = module.cpanel_server.whm_url
+# 5. Connection String (Helper for SSH if needed by support)
+output "ssh_connection_string" {
+  description = "SSH connection string for the server"
+  value       = "ssh - i your-key.pem ubuntu@${aws_eip.server_ip.public_ip}"
 }
 
-output "cpanel_url" {
-  description = "cPanel access URL"
-  value       = module.cpanel_server.cpanel_url
-}
-
-output "webmail_url" {
-  description = "Webmail access URL"
-  value       = module.cpanel_server.webmail_url
-}
-
-# Backup Information
-output "backup_bucket_name" {
-  description = "S3 backup bucket name"
-  value       = module.cpanel_server.backup_bucket_name
-}
-
-# DNS Configuration Instructions
-output "dns_records" {
-  description = "DNS records to configure"
-  value = {
-    main_domain = {
-      type   = "A"
-      name   = "@"
-      value  = module.cpanel_server.elastic_ip
-      ttl    = 300
-    }
-    cpanel_subdomain = {
-      type   = "A"
-      name   = "cpanel"
-      value  = module.cpanel_server.elastic_ip
-      ttl    = 300
-    }
-    ns1 = {
-      type   = "A"
-      name   = "ns1"
-      value  = module.cpanel_server.elastic_ip
-      ttl    = 300
-    }
-    ns2 = {
-      type   = "A"
-      name   = "ns2"
-      value  = module.cpanel_server.elastic_ip
-      ttl    = 300
-    }
-  }
-}
-
-# Next Steps
-output "next_steps" {
-  description = "Instructions for completing setup"
-  value = <<-EOT
-  
-  ========================================
-  Deployment Complete! 🎉
-  ========================================
-  
-  Customer: ${var.customer_domain}
-  Email: ${var.customer_email}
-  Tier: ${local.tier_name}
-  
-  Next Steps:
-  
-  1. Configure DNS Records:
-     - ${var.customer_domain} A ${module.cpanel_server.elastic_ip}
-     - cpanel.${var.customer_domain} A ${module.cpanel_server.elastic_ip}
-     - ns1.${var.customer_domain} A ${module.cpanel_server.elastic_ip}
-     - ns2.${var.customer_domain} A ${module.cpanel_server.elastic_ip}
-  
-  2. Access Server:
-     - WHM: ${module.cpanel_server.whm_url}
-     - SSH: aws ssm start-session --target ${module.cpanel_server.instance_id}
-  
-  3. Install cPanel:
-     - Run: sudo /root/install-cpanel.sh
-     - Wait: 1-2 hours for installation
-  
-  4. Complete Setup:
-     - Access WHM and complete initial configuration
-     - Create customer's first account
-     - Test email and websites
-  
-  ========================================
-  EOT
+# 6. Website URL (The final product)
+output "website_url" {
+  description = "The final URL of the customer website"
+  value       = "https://${var.customer_domain}"
 }
