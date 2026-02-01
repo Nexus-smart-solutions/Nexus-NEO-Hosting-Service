@@ -15,7 +15,7 @@ variable "customer_email" {
 variable "plan_tier" {
   description = "Hosting plan (basic, standard, premium)"
   type        = string
-  
+
   validation {
     condition     = contains(["basic", "standard", "premium"], lower(var.plan_tier))
     error_message = "Plan tier must be: basic, standard, or premium"
@@ -62,6 +62,20 @@ variable "vpc_cidr" {
   default     = "10.0.0.0/16"
 }
 
+# --- Feature Flags & Automation ---
+
+variable "auto_register_domain" {
+  description = "Whether to automatically register the domain via Route53"
+  type        = bool
+  default     = false
+}
+
+variable "auto_renew_domain" {
+  description = "Whether to automatically renew the domain registration"
+  type        = bool
+  default     = true
+}
+
 variable "enable_backups" {
   description = "Enable automated backups"
   type        = bool
@@ -85,6 +99,8 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+# --- Domain Registration Contacts ---
 
 variable "registrant_first_name" {
   description = "Registrant first name"
@@ -194,21 +210,25 @@ variable "tech_phone" {
   default     = ""
 }
 
+# =================================================================
+# LOCALS - LOGIC AND TAGGING
+# =================================================================
+
 locals {
   final_registrant_email = var.registrant_email != "" ? var.registrant_email : var.customer_email
   final_admin_email      = var.admin_email != "" ? var.admin_email : local.final_registrant_email
   final_tech_email       = var.tech_email != "" ? var.tech_email : local.final_registrant_email
-  
+
   final_admin_first_name = var.admin_first_name != "" ? var.admin_first_name : var.registrant_first_name
   final_admin_last_name  = var.admin_last_name != "" ? var.admin_last_name : var.registrant_last_name
   final_admin_phone      = var.admin_phone != "" ? var.admin_phone : var.registrant_phone
-  
+
   final_tech_first_name = var.tech_first_name != "" ? var.tech_first_name : var.registrant_first_name
   final_tech_last_name  = var.tech_last_name != "" ? var.tech_last_name : var.registrant_last_name
   final_tech_phone      = var.tech_phone != "" ? var.tech_phone : var.registrant_phone
-  
+
   tier_name = lower(var.plan_tier)
-  
+
   common_tags = merge(
     var.tags,
     {
