@@ -1,7 +1,3 @@
-# ===================================
-# TERRAFORM & PROVIDER CONFIGURATION
-# ===================================
-
 terraform {
   required_version = ">= 1.0"
   
@@ -23,6 +19,8 @@ provider "aws" {
         ManagedBy   = "Terraform"
         Environment = var.environment
         Customer    = var.customer_domain
+        ClientID    = var.client_id
+        Tier        = local.tier_name
       }
     )
   }
