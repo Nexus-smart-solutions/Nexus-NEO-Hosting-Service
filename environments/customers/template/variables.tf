@@ -52,11 +52,39 @@ variable "environment" {
   default     = "production"
 }
 
-# --- Domain Registration Defaults (Add these if not already there) ---
-variable "registrant_first_name" { type = string; default = "Nexus" }
-variable "registrant_last_name" { type = string; default = "Customer" }
-variable "registrant_address" { type = string; default = "Managed by Nexus NEO" }
-variable "registrant_city" { type = string; default = "Dubai" }
-variable "registrant_country_code" { type = string; default = "AE" }
-variable "registrant_zip_code" { type = string; default = "00000" }
-variable "registrant_phone" { type = string; default = "+971.000000000" }
+# --- Domain Registration Defaults ---
+
+variable "registrant_first_name" {
+  type    = string
+  default = "Nexus"
+}
+
+variable "registrant_last_name" {
+  type    = string
+  default = "Customer"
+}
+
+variable "registrant_address" {
+  type    = string
+  default = "Managed by Nexus NEO"
+}
+
+variable "registrant_city" {
+  type    = string
+  default = "Dubai"
+}
+
+variable "registrant_country_code" {
+  type    = string
+  default = "AE"
+}
+
+variable "registrant_zip_code" {
+  type    = string
+  default = "00000"
+}
+
+variable "registrant_phone" {
+  type    = string
+  default = "+971.000000000"
+}
