@@ -25,29 +25,28 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      # 1. سحب الكود من المستودع
       - name: Checkout Repository (Force Clean)
         uses: actions/checkout@v3
         with:
           clean: true
           fetch-depth: 0
       
+      # 2. التأكد من محتوى الملفات قبل الشغل (للأمان)
       - name: Verify Files
         run: |
-          echo "🔍 Checking main.tf content:"
-          echo "================================"
+          echo "🔍 Checking main.tf and backend.tf"
           cat environments/customers/template/main.tf | head -20
-          echo "================================"
-          echo ""
-          echo "🔍 Checking backend.tf content:"
-          echo "================================"
           cat environments/customers/template/backend.tf
-          echo "================================"
       
+      # 3. إعداد تيرارفورم في بيئة الأكشن
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
-      
+          terraform_wrapper: false # لازم false عشان نعرف نسحب الـ outputs كمتغيرات
+
+      # 4. تعريف بيانات AWS
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -55,7 +54,9 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
       
+      # 5. تشغيل عملية الـ Provisioning (Init, Plan, Apply)
       - name: Provision Infrastructure
+        id: terraform_step
         env:
           CUSTOMER_DOMAIN: ${{ github.event.inputs.domain }}
           CUSTOMER_EMAIL: ${{ github.event.inputs.email }}
@@ -64,28 +65,13 @@ jobs:
         run: |
           cd environments/customers/template/
           
-          echo "🚀 Starting Terraform provisioning for ${CUSTOMER_DOMAIN}"
-          echo "=================================================="
-          
           echo "📦 Initializing Terraform..."
           terraform init -reconfigure \
             -backend-config="bucket=hosting-company-terraform-state-093063750620" \
             -backend-config="region=us-east-2" \
             -backend-config="key=customers/${CUSTOMER_DOMAIN}/terraform.tfstate"
           
-          echo ""
-          echo "📋 Planning infrastructure changes..."
-          terraform plan \
-            -var="customer_domain=${CUSTOMER_DOMAIN}" \
-            -var="customer_email=${CUSTOMER_EMAIL}" \
-            -var="plan_tier=${PLAN_TIER}" \
-            -var="client_id=${CLIENT_ID}" \
-            -var="instance_type=t3.medium" \
-            -var="data_volume_size=100" \
-            -var="region=us-east-2"
-          
-          echo ""
-          echo "✨ Applying infrastructure changes..."
+          echo "✨ Applying Changes..."
           terraform apply -auto-approve \
             -var="customer_domain=${CUSTOMER_DOMAIN}" \
             -var="customer_email=${CUSTOMER_EMAIL}" \
@@ -94,13 +80,29 @@ jobs:
             -var="instance_type=t3.medium" \
             -var="data_volume_size=100" \
             -var="region=us-east-2"
-          
-          echo ""
-          echo "🎉 Provisioning completed successfully!"
-      
-      - name: Capture Outputs
+
+      # 6. سحب المخرجات (Outputs) وإرسال الـ Callback للسيستم
+      - name: Extract Outputs and Notify System
         if: success()
         run: |
           cd environments/customers/template/
-          echo "📤 Infrastructure Outputs:"
-          terraform output -json
+          
+          # استخراج البيانات من تيرارفورم
+          IP=$(terraform output -raw elastic_ip)
+          CLIENT=$(terraform output -raw client_id)
+          WHM=$(terraform output -raw whm_url)
+          
+          echo "🚀 Deployment successful. Notifying system for Client: $CLIENT"
+
+          # إرسال البيانات للـ API الخاص بنظام الاستضافة بتاعكم
+          # ملاحظة: غير الرابط ده للرابط الحقيقي اللي المطورين مدينهولك
+          curl -X POST "غيرني لل API يسطاااااااااااااااااا" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.SYSTEM_API_TOKEN }}" \
+            -d "{
+              \"client_id\": \"$CLIENT\",
+              \"ip_address\": \"$IP\",
+              \"whm_url\": \"$WHM\",
+              \"domain\": \"${{ github.event.inputs.domain }}\",
+              \"status\": \"active\"
+            }"
