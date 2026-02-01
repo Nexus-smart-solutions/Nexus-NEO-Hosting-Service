@@ -1,40 +1,78 @@
 # =================================================================
-# OUTPUTS - DATA FOR BACKEND & CUSTOMER EMAIL
+# TERRAFORM OUTPUTS
 # =================================================================
 
-# 1. The Public IP of the server (To show in the dashboard)
 output "server_public_ip" {
-  description = "The public IP address of the customer's dedicated server"
+  description = "Public IP address of the dedicated server"
   value       = aws_eip.server_ip.public_ip
 }
 
-# 2. Name Servers (Very important for the customer to see)
+output "elastic_ip" {
+  description = "Elastic IP address assigned to server"
+  value       = aws_eip.server_ip.public_ip
+}
+
 output "domain_name_servers" {
-  description = "The Name Servers assigned to the customer's hosted zone"
+  description = "Name servers assigned to the hosted zone"
   value       = aws_route53_zone.customer_zone.name_servers
 }
 
-# 3. Domain Expiry (To track and notify the customer before renewal)
-# Note: This attribute depends on the domain registration resource support
 output "domain_status" {
-  description = "Current status of the domain registration"
+  description = "Current status of domain registration"
   value       = aws_route53domains_registered_domain.domain_purchase.status_list
 }
 
-# 4. Instance ID (For internal management/reboot/scaling)
 output "instance_id" {
-  description = "The ID of the EC2 instance"
+  description = "EC2 instance identifier"
   value       = aws_instance.hosting_server.id
 }
 
-# 5. Connection String (Helper for SSH if needed by support)
-output "ssh_connection_string" {
-  description = "SSH connection string for the server"
-  value       = "ssh - i your-key.pem ubuntu@${aws_eip.server_ip.public_ip}"
+output "whm_url" {
+  description = "WHM control panel access URL"
+  value       = "https://${aws_eip.server_ip.public_ip}:2087"
 }
 
-# 6. Website URL (The final product)
+output "cpanel_url" {
+  description = "cPanel control panel access URL"
+  value       = "https://${aws_eip.server_ip.public_ip}:2083"
+}
+
+output "webmail_url" {
+  description = "Webmail access URL"
+  value       = "https://${aws_eip.server_ip.public_ip}:2096"
+}
+
 output "website_url" {
-  description = "The final URL of the customer website"
+  description = "Customer website URL"
   value       = "https://${var.customer_domain}"
+}
+
+output "ssh_connection_string" {
+  description = "SSH connection command for server access"
+  value       = "ssh -i your-key.pem ec2-user@${aws_eip.server_ip.public_ip}"
+}
+
+output "backup_bucket_name" {
+  description = "S3 bucket name for automated backups"
+  value       = aws_s3_bucket.backups.id
+}
+
+output "customer_domain" {
+  description = "Customer domain name"
+  value       = var.customer_domain
+}
+
+output "customer_email" {
+  description = "Customer email address"
+  value       = var.customer_email
+}
+
+output "plan_tier" {
+  description = "Selected hosting plan tier"
+  value       = local.tier_name
+}
+
+output "provisioned_at" {
+  description = "Infrastructure provisioning timestamp"
+  value       = timestamp()
 }
