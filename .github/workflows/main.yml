@@ -20,20 +20,20 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2 # تم الضبط على أوهايو
+          aws-region: us-east-2 # أوهايو
 
-      # 1. إعداد وفحص ملفات التيرافورم
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init & Plan
         run: |
-          # المسار المصحح بناءً على ملفاتك
-          cd "files (1)/neo-vps-dns-ready/neo-vps-dns-ready/terraform"
+          # أمر البحث عن المجلد اللي فيه ملفات .tf والدخول فيه
+          TF_PATH=$(find . -name "*.tf" -exec dirname {} + | head -n 1)
+          echo "Found Terraform files in: $TF_PATH"
+          cd "$TF_PATH"
           terraform init
           terraform plan
 
-      # 2. إعداد بايثون وفحص السكربتات
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -46,14 +46,13 @@ jobs:
 
       - name: Python Syntax Check
         run: |
-          # فحص السكربتات في مساراتها الصحيحة
-          python -m py_compile "files (1)/neo-vps-dns-ready/neo-vps-dns-ready/scripts/dns-automation.py"
-          python -m py_compile "monitoring/create-dashboard.py"
+          # البحث عن ملفات البايثون وتشغيل فحص السنتكس عليها
+          find . -name "*.py" -exec python -m py_compile {} +
 
-      # 3. مرحلة التنفيذ (Deployment)
       - name: Provision Infrastructure
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          # الانتقال لمجلد الأتمتة وتشغيل السكربت
-          chmod +x automation/provision-customer-updated.sh
-          ./automation/provision-customer-updated.sh -d "example.com" -e "admin@example.com"
+          # البحث عن سكربت الـ Provision وتشغيله
+          PROVISION_SCRIPT=$(find . -name "provision-customer-updated.sh")
+          chmod +x "$PROVISION_SCRIPT"
+          ./"$PROVISION_SCRIPT" -d "example.com" -e "admin@example.com"
