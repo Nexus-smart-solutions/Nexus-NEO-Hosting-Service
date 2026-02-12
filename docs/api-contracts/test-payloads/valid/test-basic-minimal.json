@@ -1,9 +1,0 @@
-{
-  "event_type": "provision_customer",
-  "client_payload": {
-    "domain": "basic-test.com",
-    "email": "test@basic-test.com",
-    "tier": "basic",
-    "client_id": "test_basic_001"
-  }
-}

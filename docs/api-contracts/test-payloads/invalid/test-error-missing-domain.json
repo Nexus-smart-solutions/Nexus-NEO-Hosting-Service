@@ -1,8 +1,0 @@
-{
-  "event_type": "provision_customer",
-  "client_payload": {
-    "email": "test@example.com",
-    "tier": "basic",
-    "client_id": "test_err_001"
-  }
-}
