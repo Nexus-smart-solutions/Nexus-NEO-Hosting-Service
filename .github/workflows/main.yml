@@ -20,17 +20,18 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2 # أوهايو
+          aws-region: us-east-2 # منطقة أوهايو الخاصة بك
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init & Plan
         run: |
-          # أمر البحث عن المجلد اللي فيه ملفات .tf والدخول فيه
-          TF_PATH=$(find . -name "*.tf" -exec dirname {} + | head -n 1)
-          echo "Found Terraform files in: $TF_PATH"
-          cd "$TF_PATH"
+          # البحث التلقائي عن مجلد التيرافورم وتجهيزه
+          TF_DIR=$(find . -name "terraform" -type d | head -n 1)
+          if [ -z "$TF_DIR" ]; then TF_DIR="."; fi
+          echo "Working in: $TF_DIR"
+          cd "$TF_DIR"
           terraform init
           terraform plan
 
@@ -46,13 +47,22 @@ jobs:
 
       - name: Python Syntax Check
         run: |
-          # البحث عن ملفات البايثون وتشغيل فحص السنتكس عليها
+          # فحص ملفات البايثون في المشروع بالكامل
           find . -name "*.py" -exec python -m py_compile {} +
 
       - name: Provision Infrastructure
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          # تمرير المتغيرات كـ Environment Variables لتجنب فشل التيرافورم أوت بوت
+          REGION: us-east-2
+          BACKUP_BUCKET: "neo-backups-manual-fallback" 
         run: |
-          # البحث عن سكربت الـ Provision وتشغيله
-          PROVISION_SCRIPT=$(find . -name "provision-customer-updated.sh")
+          # البحث عن سكربت الـ Provision
+          PROVISION_SCRIPT=$(find . -name "provision-customer-updated.sh" | head -n 1)
           chmod +x "$PROVISION_SCRIPT"
-          ./"$PROVISION_SCRIPT" -d "example.com" -e "admin@example.com"
+          
+          echo "[CI/CD] Starting Provisioning for NEO Project..."
+          
+          # تشغيل السكربت مع العلم --dry-run عشان نتأكد إنه شغال بدون ما يكلفك فلوس حالياً
+          # لو عايز تنفذ فعلياً، امسح --dry-run
+          ./"$PROVISION_SCRIPT" -d "test-customer.com" -e "admin@test.com" --dry-run
