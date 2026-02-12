@@ -1,0 +1,420 @@
+name: Neo VPS - Ohio Region Deployment
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment Environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options: [dev, staging, production]
+      customer_domain:
+        description: 'Customer Domain (for provisioning)'
+        required: false
+        type: string
+      action:
+        description: 'Terraform Action'
+        required: true
+        default: 'plan'
+        type: choice
+        options: [plan, apply, destroy]
+
+env:
+  # Ohio Region Configuration
+  AWS_REGION: us-east-2
+  AWS_REGION_NAME: Ohio
+  DR_REGION: us-east-1
+  DR_REGION_NAME: N-Virginia
+  
+  # Versions
+  TERRAFORM_VERSION: '1.6.0'
+  PYTHON_VERSION: '3.11'
+  
+  # Terraform Backend
+  TF_STATE_BUCKET: neo-terraform-state-ohio
+  TF_STATE_LOCK_TABLE: neo-terraform-locks
+  
+  # Project
+  PROJECT_NAME: neo-vps
+  
+jobs:
+  # ==========================================
+  # Validate Code Quality
+  # ==========================================
+  validate:
+    name: 🔍 Code Quality & Security
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+        continue-on-error: true
+      
+      - name: Terraform Validate
+        run: |
+          cd modules/network && terraform init -backend=false && terraform validate
+          cd ../security && terraform init -backend=false && terraform validate
+          cd ../panel-server && terraform init -backend=false && terraform validate
+          cd ../dns-server && terraform init -backend=false && terraform validate
+      
+      - name: TFSec Security Scan
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          soft_fail: true
+      
+      - name: Checkov IaC Scanner
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: terraform
+          soft_fail: true
+
+  # ==========================================
+  # Setup Backend (One-time)
+  # ==========================================
+  setup-backend:
+    name: 🏗️ Setup Terraform Backend (Ohio)
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS (Ohio)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      
+      - name: Deploy Backend Infrastructure
+        run: |
+          cd backend
+          terraform init
+          terraform apply -auto-approve \
+            -var="region=${{ env.AWS_REGION }}"
+          
+          echo "✅ Backend deployed in ${{ env.AWS_REGION_NAME }}"
+
+  # ==========================================
+  # Terraform Plan
+  # ==========================================
+  plan:
+    name: 📋 Terraform Plan (${{ matrix.env }})
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'plan')
+    
+    strategy:
+      matrix:
+        env: [dev, staging]
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS (Ohio)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      
+      - name: Terraform Init
+        run: |
+          cd environments/${{ matrix.env }}
+          terraform init \
+            -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
+            -backend-config="key=${{ matrix.env }}/terraform.tfstate" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="dynamodb_table=${{ env.TF_STATE_LOCK_TABLE }}"
+      
+      - name: Terraform Plan
+        id: plan
+        run: |
+          cd environments/${{ matrix.env }}
+          terraform plan \
+            -var="aws_region=${{ env.AWS_REGION }}" \
+            -out=tfplan \
+            -no-color
+      
+      - name: Post Plan to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `#### Terraform Plan 📋 \`${{ matrix.env }}\` - Region: \`${{ env.AWS_REGION_NAME }}\`
+            
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`terraform
+            ${{ steps.plan.outputs.stdout }}
+            \`\`\`
+            
+            </details>`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+  # ==========================================
+  # Provision Customer Server
+  # ==========================================
+  provision:
+    name: 🚀 Provision Customer Server
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply' && github.event.inputs.customer_domain != ''
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS (Ohio)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install Dependencies
+        run: |
+          pip install boto3
+      
+      - name: Run Provisioning
+        id: provision
+        run: |
+          chmod +x automation/provision-customer.sh
+          
+          ./automation/provision-customer.sh \
+            --domain "${{ github.event.inputs.customer_domain }}" \
+            --email "${{ secrets.CUSTOMER_EMAIL }}" \
+            --region "${{ env.AWS_REGION }}" \
+            --plan "standard"
+          
+          echo "provisioned=true" >> $GITHUB_OUTPUT
+      
+      - name: Wait for Instance
+        if: steps.provision.outputs.provisioned == 'true'
+        run: |
+          echo "⏳ Waiting for provisioning (est. 5 minutes)..."
+          sleep 300
+      
+      - name: Verify Deployment
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --region ${{ env.AWS_REGION }} \
+            --filters "Name=tag:Domain,Values=${{ github.event.inputs.customer_domain }}" \
+            --query 'Reservations[0].Instances[0].InstanceId' \
+            --output text)
+          
+          echo "Instance ID: $INSTANCE_ID"
+          
+          aws ec2 wait instance-status-ok \
+            --region ${{ env.AWS_REGION }} \
+            --instance-ids $INSTANCE_ID
+          
+          PUBLIC_IP=$(aws ec2 describe-instances \
+            --region ${{ env.AWS_REGION }} \
+            --instance-ids $INSTANCE_ID \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text)
+          
+          echo "✅ Server provisioned successfully!"
+          echo "🌐 Public IP: $PUBLIC_IP"
+          echo "📍 Region: ${{ env.AWS_REGION_NAME }} (${{ env.AWS_REGION }})"
+      
+      - name: Run DNS Automation
+        run: |
+          python3 scripts/dns-automation.py \
+            "${{ github.event.inputs.customer_domain }}" \
+            "$PUBLIC_IP" \
+            "$NS1_IP"
+      
+      - name: Send Success Notification
+        if: success()
+        run: |
+          echo "✅ Deployment completed successfully"
+          echo "Domain: ${{ github.event.inputs.customer_domain }}"
+          echo "Region: ${{ env.AWS_REGION_NAME }}"
+
+  # ==========================================
+  # Backup State to DR Region
+  # ==========================================
+  backup-to-dr:
+    name: 💾 Backup to DR Region (N. Virginia)
+    runs-on: ubuntu-latest
+    needs: [provision]
+    if: always() && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Configure AWS (Ohio)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Replicate State to DR
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          
+          # Copy Ohio state to N. Virginia for DR
+          aws s3 sync \
+            s3://${{ env.TF_STATE_BUCKET }} \
+            s3://neo-terraform-state-dr-virginia/backup-$TIMESTAMP/ \
+            --region ${{ env.DR_REGION }}
+          
+          echo "✅ State backed up to DR region"
+
+  # ==========================================
+  # Multi-Region AMI Copy
+  # ==========================================
+  replicate-ami:
+    name: 🔄 Replicate AMI to DR Region
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Get Latest AMI (Ohio)
+        id: ami
+        run: |
+          AMI_ID=$(aws ec2 describe-images \
+            --owners self \
+            --filters "Name=name,Values=neo-golden-*" \
+            --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' \
+            --output text \
+            --region ${{ env.AWS_REGION }})
+          
+          echo "ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+          echo "Found AMI: $AMI_ID in Ohio"
+      
+      - name: Copy AMI to DR Region
+        if: steps.ami.outputs.ami_id != ''
+        run: |
+          aws ec2 copy-image \
+            --source-region ${{ env.AWS_REGION }} \
+            --source-image-id ${{ steps.ami.outputs.ami_id }} \
+            --name "neo-golden-dr-$(date +%Y%m%d)" \
+            --description "DR copy from Ohio" \
+            --region ${{ env.DR_REGION }}
+          
+          echo "✅ AMI replicated to ${{ env.DR_REGION_NAME }}"
+
+  # ==========================================
+  # Security Scan (Ohio Resources)
+  # ==========================================
+  security-scan:
+    name: 🔒 Security Scan (Ohio Region)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Scan Security Groups
+        run: |
+          echo "🔍 Scanning security groups in Ohio..."
+          
+          aws ec2 describe-security-groups \
+            --region ${{ env.AWS_REGION }} \
+            --query 'SecurityGroups[?IpPermissions[?IpRanges[?CidrIp==`0.0.0.0/0`]]].[GroupId,GroupName]' \
+            --output table
+      
+      - name: Check GuardDuty Status
+        run: |
+          aws guardduty list-detectors \
+            --region ${{ env.AWS_REGION }} \
+            --query 'DetectorIds[0]' \
+            --output text || echo "⚠️ GuardDuty not enabled"
+
+  # ==========================================
+  # Destroy (Manual Only)
+  # ==========================================
+  destroy:
+    name: 🗑️ Destroy Infrastructure
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
+    environment:
+      name: ${{ github.event.inputs.environment }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: ⚠️ Confirm Destruction
+        run: |
+          echo "⚠️⚠️⚠️ WARNING ⚠️⚠️⚠️"
+          echo "About to DESTROY infrastructure in:"
+          echo "Region: ${{ env.AWS_REGION_NAME }}"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "Triggered by: ${{ github.actor }}"
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      
+      - name: Terraform Destroy
+        run: |
+          cd environments/${{ github.event.inputs.environment }}
+          terraform init
+          terraform destroy -auto-approve \
+            -var="aws_region=${{ env.AWS_REGION }}"
+
+# ==========================================
+# Scheduled Jobs
+# ==========================================
+# Run security scan daily at 2 AM UTC
+# Run backup every 6 hours
+# ==========================================
