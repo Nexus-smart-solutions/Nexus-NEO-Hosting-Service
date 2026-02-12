@@ -1,0 +1,67 @@
+Neo VPS v2.0 - Directory Structure
+===================================
+
+neo-vps/
+├── modules/
+│   ├── panel-server/           # Multi-panel server module ⭐ NEW
+│   │   ├── main.tf            # EC2, IAM, S3, snapshots
+│   │   ├── variables.tf       # All configuration options
+│   │   ├── outputs.tf         # Access URLs and instructions
+│   │   └── user-data/         # Panel installation scripts ⭐ NEW
+│   │       ├── cyberpanel.sh.tpl    # CyberPanel (FREE)
+│   │       ├── cpanel.sh.tpl        # cPanel/WHM ($)
+│   │       ├── directadmin.sh.tpl   # DirectAdmin ($)
+│   │       └── none.sh.tpl          # Clean server
+│   │
+│   ├── network/               # VPC, Subnets, NAT, IGW
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   └── outputs.tf
+│   │
+│   └── security/              # Security Groups
+│       ├── main.tf
+│       ├── variables.tf
+│       └── outputs.tf
+│
+├── backend/                   # Terraform State Management
+│   ├── main.tf               # S3 + DynamoDB
+│   ├── variables.tf
+│   └── outputs.tf
+│
+├── automation/               # Automation Scripts
+│   └── provision-customer.sh # Auto-provisioning
+│
+├── environments/             # Customer Deployments
+│   └── customers/           # Per-customer configs
+│       └── [customer-domain]/
+│           ├── main.tf
+│           ├── terraform.tfvars
+│           └── backend.tf
+│
+├── docs/                     # Documentation (coming soon)
+│   ├── INSTALLATION.md
+│   ├── PANELS.md
+│   └── TROUBLESHOOTING.md
+│
+├── README.md                 # Main documentation ⭐ UPDATED
+├── CHANGELOG.md              # Version history ⭐ NEW
+├── STRUCTURE.txt             # This file
+├── .gitignore
+└── terraform.tfvars.example  # Configuration template ⭐ UPDATED
+
+Key Changes in v2.0:
+====================
+✅ Multi-panel support (CyberPanel, cPanel, DirectAdmin, None)
+✅ Golden AMI architecture (single clean AMI for all)
+✅ User Data installation scripts
+✅ Enhanced documentation
+✅ Cost comparison guides
+✅ Panel-specific instructions
+
+Control Panels Supported:
+========================
+🆓 CyberPanel   - FREE, OpenLiteSpeed, 15-20 min install
+💰 cPanel/WHM   - $15-45/mo, Industry standard, 60-90 min install
+💰 DirectAdmin  - $5-29/mo, Budget-friendly, Manual setup
+🔧 Clean Server - FREE, No panel, Full customization
+
