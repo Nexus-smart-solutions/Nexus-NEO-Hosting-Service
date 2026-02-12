@@ -132,15 +132,15 @@ DNS is isolated from hosting nodes.
 Primary DNS Server (AlmaLinux Bind9):
 
 ```
-ns1.yourdomain.com
-ns2.yourdomain.com
+ns1.nexus-dxb.com
+ns2.nexus-dxb.com
 ```
 
 Example:
 
 ```
-ns1.yourdomain.com → x.x.x.x
-ns2.yourdomain.com → x.x.x.x
+ns1.yourdomain.com → x.x.x.x (Your IP)
+ns2.yourdomain.com → x.x.x.x (Your IP)
 ```
 
 * Dedicated DNS EC2 instance
@@ -150,30 +150,6 @@ ns2.yourdomain.com → x.x.x.x
 
 ---
 
-# 📁 Project Structure – Version 3
-
-```
-infra/
- ├── main.tf
- ├── variables.tf
- ├── outputs.tf
- ├── modules/
- │     ├── network/
- │     ├── security/
- │     ├── panel-server/
- │     └── dns-server/
- ├── userdata/
- │     ├── cpanel.sh.tpl
- │     ├── cyberpanel.sh.tpl
- │     ├── directadmin.sh.tpl
- │     └── none.sh.tpl
- └── scripts/
-
-.github/
- └── workflows/
-       terraform.yml
-
-README.md
 ```
 
 ---
