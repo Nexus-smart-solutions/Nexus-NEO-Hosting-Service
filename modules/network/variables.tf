@@ -26,7 +26,7 @@ variable "environment" {
 variable "region" {
   description = "AWS region"
   type        = string
-  default     = "us-east-1"
+  default     = "us-east-2"
 }
 
 # ===================================
@@ -49,9 +49,9 @@ variable "vpc_cidr" {
 # ===================================
 
 variable "availability_zones" {
-  description = "List of availability zones"
+  description = "List of availability zones in Ohio (us-east-2)"
   type        = list(string)
-  default     = ["us-east-1a", "us-east-1b"]
+  default     = ["us-east-2a", "us-east-2b"]
 }
 
 variable "public_subnet_cidrs" {
@@ -104,6 +104,40 @@ variable "enable_s3_endpoint" {
   description = "Enable S3 VPC Endpoint (Gateway type - free)"
   type        = bool
   default     = true
+}
+
+# ===================================
+# DNS CONFIGURATION (Added to fix CI errors)
+# ===================================
+
+variable "enable_custom_dns" {
+  description = "Enable custom DNS server infrastructure"
+  type        = bool
+  default     = false
+}
+
+variable "enable_secondary_dns" {
+  description = "Enable secondary DNS server"
+  type        = bool
+  default     = false
+}
+
+variable "admin_cidr_blocks" {
+  description = "CIDR blocks allowed to access DNS server (SSH)"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
+variable "backup_bucket" {
+  description = "S3 bucket name for DNS backups"
+  type        = string
+  default     = ""
+}
+
+variable "vpc_id" {
+  description = "Existing VPC ID (optional - used if VPC created outside this module)"
+  type        = string
+  default     = null
 }
 
 # ===================================
