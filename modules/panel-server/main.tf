@@ -232,6 +232,15 @@ resource "aws_key_pair" "panel_server" {
 # ===================================
 # EC2 INSTANCE
 # ===================================
+metadata_options {
+  http_tokens = "required"
+}
+
+root_block_device {
+  encrypted = true
+}
+
+disable_api_termination = true
 
 resource "aws_instance" "panel_server" {
   ami           = local.ami_id
