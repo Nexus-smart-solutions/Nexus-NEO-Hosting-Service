@@ -1,121 +1,63 @@
-name: "NEO Infrastructure - Force Refresh"
+name: NEO Project CI/CD
 
 on:
-  workflow_dispatch:
-    inputs:
-      domain:
-        required: true
-        description: "Customer Domain"
-      email:
-        required: true
-        description: "Customer Email"
-      tier:
-        required: true
-        description: "Hosting Tier (basic/standard/premium)"
-        default: "basic"
-      client_id:
-        required: true
-        description: "Unique Client ID"
-
-env:
-  TERRAFORM_VERSION: "1.6.0"
-  AWS_REGION: "us-east-2"
+  push:
+    branches: [ main ] # يشتغل عند الرفع على فرع main
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  provision:
-    name: Provision Customer Infrastructure
+  infrastructure:
+    name: Terraform & Provisioning
     runs-on: ubuntu-latest
-    timeout-minutes: 40
-
+    
     steps:
-      # 1️⃣ Checkout
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-      # 2️⃣ Setup Terraform
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TERRAFORM_VERSION }}
-          terraform_wrapper: false
-
-      - name: Terraform Version
-        run: terraform version
-
-      # 3️⃣ AWS Credentials
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Verify AWS
-        run: aws sts get-caller-identity
+      # 1. فحص ملفات التيرافورم (Validation)
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
 
-      # 4️⃣ Terraform Init
-      - name: Terraform Init
+      - name: Terraform Format & Init
         run: |
-          cd environments/customers/template
-          terraform init -reconfigure \
-            -backend-config="bucket=hosting-company-terraform-state-093063750620" \
-            -backend-config="region=${{ env.AWS_REGION }}" \
-            -backend-config="key=customers/${{ github.event.inputs.domain }}/terraform.tfstate" \
-            -backend-config="encrypt=true"
+          cd terraform
+          terraform fmt -check
+          terraform init
 
-      # 5️⃣ Terraform Validate
-      - name: Terraform Validate
-        run: |
-          cd environments/customers/template
-          terraform validate
-
-      # 6️⃣ Terraform Plan
       - name: Terraform Plan
         run: |
-          cd environments/customers/template
-          terraform plan \
-            -var="customer_domain=${{ github.event.inputs.domain }}" \
-            -var="customer_email=${{ github.event.inputs.email }}" \
-            -var="plan_tier=${{ github.event.inputs.tier }}" \
-            -var="client_id=${{ github.event.inputs.client_id }}" \
-            -var="instance_type=t3.medium" \
-            -var="data_volume_size=100" \
-            -var="region=${{ env.AWS_REGION }}" \
-            -out=tfplan
+          cd terraform
+          terraform plan
 
-      # 7️⃣ Terraform Apply
-      - name: Terraform Apply
-        run: |
-          cd environments/customers/template
-          terraform apply -auto-approve tfplan
-
-      # 8️⃣ Extract Outputs
-      - name: Extract Outputs
-        id: outputs
-        run: |
-          cd environments/customers/template
-
-          echo "elastic_ip=$(terraform output -raw elastic_ip)" >> $GITHUB_OUTPUT
-          echo "whm_url=$(terraform output -raw whm_url)" >> $GITHUB_OUTPUT
-          echo "cpanel_url=$(terraform output -raw cpanel_url)" >> $GITHUB_OUTPUT
-          echo "instance_id=$(terraform output -raw instance_id)" >> $GITHUB_OUTPUT
-
-      # 9️⃣ Upload Outputs
-      - name: Upload Outputs Artifact
-        uses: actions/upload-artifact@v4
+      # 2. فحص ملفات البايثون (Linting)
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          name: terraform-outputs-${{ github.event.inputs.client_id }}
-          path: environments/customers/template/terraform.tfstate
+          python-version: '3.9'
 
-      # 🔟 Deployment Summary
-      - name: Deployment Summary
-        if: always()
+      - name: Install Dependencies
         run: |
-          echo "# 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Domain: ${{ github.event.inputs.domain }}" >> $GITHUB_STEP_SUMMARY
-          echo "## Tier: ${{ github.event.inputs.tier }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Elastic IP: ${{ steps.outputs.outputs.elastic_ip }}" >> $GITHUB_STEP_SUMMARY
-          echo "WHM URL: ${{ steps.outputs.outputs.whm_url }}" >> $GITHUB_STEP_SUMMARY
-          echo "cPanel URL: ${{ steps.outputs.outputs.cpanel_url }}" >> $GITHUB_STEP_SUMMARY
+          python -m pip install --upgrade pip
+          pip install boto3 requests
+          # إذا كان عندك ملف requirements.txt
+          # pip install -r requirements.txt
+
+      - name: Python Syntax Check
+        run: |
+          python -m py_compile scripts/dns-automation.py monitoring/create-dashboard.py
+
+      # 3. مرحلة التنفيذ (Deployment) - لا تعمل إلا عند عمل Push لـ main
+      - name: Provision Infrastructure
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          chmod +x automation/provision-customer-updated.sh
+          # ملاحظة: تأكد من تمرير المتغيرات المطلوبة للسكربت
+          ./automation/provision-customer-updated.sh -d "example.com" -e "admin@example.com"
