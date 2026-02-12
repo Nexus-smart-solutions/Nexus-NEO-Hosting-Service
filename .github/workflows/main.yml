@@ -20,17 +20,23 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2 # منطقة أوهايو الخاصة بك
+          aws-region: us-east-2 # أوهايو
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init & Plan
         run: |
-          # البحث التلقائي عن مجلد التيرافورم وتجهيزه
-          TF_DIR=$(find . -name "terraform" -type d | head -n 1)
-          if [ -z "$TF_DIR" ]; then TF_DIR="."; fi
-          echo "Working in: $TF_DIR"
+          # البحث عن المجلد الذي يحتوي فعلياً على ملفات .tf
+          # سنتخطى المجلدات الفارغة أو المخفية
+          TF_DIR=$(find . -name "*.tf" -not -path "*/.*" -exec dirname {} + | sort -u | head -n 1)
+          
+          if [ -z "$TF_DIR" ]; then
+            echo "❌ Error: No Terraform files (.tf) found in the repository!"
+            exit 1
+          fi
+          
+          echo "✅ Found Terraform configuration in: $TF_DIR"
           cd "$TF_DIR"
           terraform init
           terraform plan
@@ -40,29 +46,25 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Install Dependencies
+      - name: Python Check
         run: |
-          python -m pip install --upgrade pip
-          pip install boto3 requests
-
-      - name: Python Syntax Check
-        run: |
-          # فحص ملفات البايثون في المشروع بالكامل
+          # فحص السنتكس لكل ملفات البايثون المرفوعة
           find . -name "*.py" -exec python -m py_compile {} +
+          echo "✅ Python syntax check passed."
 
       - name: Provision Infrastructure
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
-          # تمرير المتغيرات كـ Environment Variables لتجنب فشل التيرافورم أوت بوت
           REGION: us-east-2
-          BACKUP_BUCKET: "neo-backups-manual-fallback" 
         run: |
-          # البحث عن سكربت الـ Provision
-          PROVISION_SCRIPT=$(find . -name "provision-customer-updated.sh" | head -n 1)
-          chmod +x "$PROVISION_SCRIPT"
+          # البحث عن السكربت وتشغيله
+          SCRIPT_PATH=$(find . -name "provision-customer-updated.sh" | head -n 1)
+          if [ -z "$SCRIPT_PATH" ]; then
+            echo "❌ Provision script not found!"
+            exit 1
+          fi
           
-          echo "[CI/CD] Starting Provisioning for NEO Project..."
-          
-          # تشغيل السكربت مع العلم --dry-run عشان نتأكد إنه شغال بدون ما يكلفك فلوس حالياً
-          # لو عايز تنفذ فعلياً، امسح --dry-run
-          ./"$PROVISION_SCRIPT" -d "test-customer.com" -e "admin@test.com" --dry-run
+          chmod +x "$SCRIPT_PATH"
+          echo "🚀 Running Provisioning Script..."
+          # تشغيل السكربت مع تمرير بيانات تجريبية
+          ./"$SCRIPT_PATH" -d "deploy-test.com" -e "admin@neo.com" --dry-run
