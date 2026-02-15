@@ -1,5 +1,8 @@
 # ================================================================
-# ROUTE53 MODULE - OUTPUTS
+# ROUTE53 MODULE - OUTPUTS (UPDATED)
+# ================================================================
+# Add these outputs to your existing outputs.tf file
+# Or replace the existing outputs section
 # ================================================================
 
 output "zone_id" {
@@ -13,7 +16,7 @@ output "zone_arn" {
 }
 
 output "name_servers" {
-  description = "List of name servers for the hosted zone"
+  description = "AWS name servers for the hosted zone"
   value       = aws_route53_zone.main.name_servers
 }
 
@@ -25,23 +28,49 @@ output "custom_name_servers" {
   ] : []
 }
 
+# ========== NEW OUTPUTS ==========
+
+output "all_nameservers" {
+  description = "All configured nameservers including additional ones"
+  value = concat(
+    var.enable_custom_nameservers ? [
+      "ns1.${var.domain}",
+      "ns2.${var.domain}"
+    ] : [],
+    var.enable_additional_nameservers ? [
+      "nsfs.${var.domain}",
+      "nsfs9.${var.domain}"
+    ] : []
+  )
+}
+
+output "additional_nameservers" {
+  description = "Additional nameserver details"
+  value = var.enable_additional_nameservers ? {
+    nsfs = {
+      hostname = "nsfs.${var.domain}"
+      ip       = var.ns3_ip
+    }
+    nsfs9 = {
+      hostname = "nsfs9.${var.domain}"
+      ip       = var.ns4_ip
+    }
+  } : {}
+}
+
 output "zone_name" {
   description = "The domain name"
   value       = aws_route53_zone.main.name
 }
 
-output "health_check_id" {
-  description = "Health check ID (if enabled)"
-  value       = var.enable_health_check ? aws_route53_health_check.server[0].id : null
-}
+# ========== DNS SERVER IPs ==========
 
-output "dns_records" {
-  description = "Summary of created DNS records"
+output "dns_server_ips" {
+  description = "All DNS server IPs"
   value = {
-    root_domain = "${var.domain} → ${var.server_ip}"
-    www         = "www.${var.domain} → ${var.server_ip}"
-    mail        = var.enable_mail_records ? "mail.${var.domain} → ${var.mail_server_ip != "" ? var.mail_server_ip : var.server_ip}" : "disabled"
-    mx          = var.enable_mail_records ? "10 mail.${var.domain}" : "disabled"
-    nameservers = var.enable_custom_nameservers ? "ns1/ns2.${var.domain}" : "AWS managed"
+    ns1   = var.enable_custom_nameservers ? var.ns1_ip : null
+    ns2   = var.enable_custom_nameservers ? var.ns2_ip : null
+    nsfs  = var.enable_additional_nameservers ? var.ns3_ip : null
+    nsfs9 = var.enable_additional_nameservers ? var.ns4_ip : null
   }
 }
