@@ -10,11 +10,6 @@
 locals {
   server_ip = var.allocate_elastic_ip ? aws_eip.panel_server[0].public_ip : aws_instance.panel_server.public_ip
 
-  panel_ports = {
-    cyberpanel  = 8090
-    cpanel      = 2087
-    directadmin = 2222
-  }
 
   panel_port = lookup(local.panel_ports, var.control_panel, null)
 
