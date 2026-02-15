@@ -5,55 +5,50 @@
 # ================================================================
 
 # ================================================================
-# DNS CONFIGURATION
+# AWS Configuration
 # ================================================================
 
-# Custom nameservers (Primary & Secondary)
+aws_region  = "us-east-2"
+environment = "production"
+
+# ================================================================
+# Customer Information
+# ================================================================
+
+customer_id     = "customer-001"
+customer_domain = "example.com"
+
+# ================================================================
+# Server Configuration
+# ================================================================
+
+control_panel = "cpanel"
+instance_type = "t3.medium"
+server_ip     = "3.15.200.100"
+deploy_server = false  # Set to true to deploy EC2 instance
+ssh_key_name  = ""     # Add your SSH key name if deploying server
+
+# ================================================================
+# DNS Configuration
+# ================================================================
+
 enable_custom_nameservers = true
-ns1_ip = "18.191.22.15"      # Primary DNS IP (ns1.nexus-dxb.com)
-ns2_ip = "YOUR_NS2_IP_HERE"  # Secondary DNS IP (ns2.nexus-dxb.com)
+ns1_ip                    = "18.191.22.15"
+ns2_ip                    = "3.15.200.100"
 
-# Additional nameservers (NEW)
 enable_additional_nameservers = true
-ns3_ip = "54.152.161.12"     # nsfs.nexus-dxb.com
-ns4_ip = "54.152.161.12"     # nsfs9-nexus-dxb.com
+ns3_ip                        = "54.152.161.12"
+ns4_ip                        = "54.152.161.12"
 
 # ================================================================
-# CUSTOMER & DOMAIN INFO
-# ================================================================
-
-customer_id = "customer-001"
-domain      = "example.com"
-server_ip   = "YOUR_SERVER_IP_HERE"
-
-# ================================================================
-# MAIL CONFIGURATION
+# Mail Configuration
 # ================================================================
 
 enable_mail_records = true
 mail_server_ip      = ""  # Leave empty to use server_ip
 
 # ================================================================
-# PANEL CONFIGURATION
-# ================================================================
-
-panel_type = "cpanel"  # Options: cpanel, cyberpanel, directadmin, none
-
-# ================================================================
-# MONITORING
-# ================================================================
-
-enable_health_check = false
-alarm_actions       = []  # Add SNS topic ARNs if needed
-
-# ================================================================
-# ENVIRONMENT
-# ================================================================
-
-environment = "production"  # Options: production, staging, development
-
-# ================================================================
-# TAGS
+# Tags
 # ================================================================
 
 tags = {
