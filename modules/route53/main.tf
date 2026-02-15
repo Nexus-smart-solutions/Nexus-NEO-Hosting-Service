@@ -104,16 +104,6 @@ resource "aws_route53_record" "ns2" {
   records = [var.ns2_ip]
 }
 
-# NS2 A record
-resource "aws_route53_record" "ns2" {
-  count   = var.enable_custom_nameservers ? 1 : 0
-  zone_id = aws_route53_zone.main.zone_id
-  name    = "ns2.${var.domain}"
-  type    = "A"
-  ttl     = local.default_ttl
-  records = [var.ns2_ip]
-}
-
 # ========== إضافة السيرفرات الجديدة ==========
 # NSFS A record
 resource "aws_route53_record" "nsfs" {
@@ -135,8 +125,6 @@ resource "aws_route53_record" "nsfs9" {
   records = [var.ns4_ip]
 }
 
-
-
 # Custom NS records (override AWS nameservers)
 resource "aws_route53_record" "custom_ns" {
   count   = var.enable_custom_nameservers ? 1 : 0
@@ -145,10 +133,16 @@ resource "aws_route53_record" "custom_ns" {
   type    = "NS"
   ttl     = local.ns_ttl
   
-  records = [
-    "ns1.${var.domain}",
-    "ns2.${var.domain}"
-  ]
+  records = concat(
+    [
+      "ns1.${var.domain}",
+      "ns2.${var.domain}"
+    ],
+    var.enable_additional_nameservers ? [
+      "nsfs.${var.domain}",
+      "nsfs9.${var.domain}"
+    ] : []
+  )
 }
 
 # ================================================================
@@ -306,6 +300,34 @@ output "custom_name_servers" {
     "ns1.${var.domain}",
     "ns2.${var.domain}"
   ] : []
+}
+
+output "all_nameservers" {
+  description = "All configured nameservers including additional ones"
+  value = concat(
+    var.enable_custom_nameservers ? [
+      "ns1.${var.domain}",
+      "ns2.${var.domain}"
+    ] : [],
+    var.enable_additional_nameservers ? [
+      "nsfs.${var.domain}",
+      "nsfs9.${var.domain}"
+    ] : []
+  )
+}
+
+output "additional_nameservers" {
+  description = "Additional nameserver details"
+  value = var.enable_additional_nameservers ? {
+    nsfs = {
+      hostname = "nsfs.${var.domain}"
+      ip       = var.ns3_ip
+    }
+    nsfs9 = {
+      hostname = "nsfs9.${var.domain}"
+      ip       = var.ns4_ip
+    }
+  } : {}
 }
 
 output "zone_name" {
