@@ -71,6 +71,31 @@ variable "ns2_ip" {
   default     = ""
 }
 
+variable "ns2_ip" {
+  description = "Secondary nameserver IP (for custom NS)"
+  type        = string
+  default     = ""
+}
+
+# ========== إضافة السيرفرات الجديدة ==========
+variable "ns3_ip" {
+  description = "Third nameserver IP (nsfs)"
+  type        = string
+  default     = ""
+}
+
+variable "ns4_ip" {
+  description = "Fourth nameserver IP (nsfs9)"
+  type        = string
+  default     = ""
+}
+
+variable "enable_additional_nameservers" {
+  description = "Enable additional nameservers (nsfs, nsfs9)"
+  type        = bool
+  default     = false
+}
+
 # Health Check
 variable "enable_health_check" {
   description = "Enable Route53 health check for the server"
