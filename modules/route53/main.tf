@@ -104,6 +104,39 @@ resource "aws_route53_record" "ns2" {
   records = [var.ns2_ip]
 }
 
+# NS2 A record
+resource "aws_route53_record" "ns2" {
+  count   = var.enable_custom_nameservers ? 1 : 0
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "ns2.${var.domain}"
+  type    = "A"
+  ttl     = local.default_ttl
+  records = [var.ns2_ip]
+}
+
+# ========== إضافة السيرفرات الجديدة ==========
+# NSFS A record
+resource "aws_route53_record" "nsfs" {
+  count   = var.enable_additional_nameservers ? 1 : 0
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "nsfs.${var.domain}"
+  type    = "A"
+  ttl     = local.default_ttl
+  records = [var.ns3_ip]
+}
+
+# NSFS9 A record
+resource "aws_route53_record" "nsfs9" {
+  count   = var.enable_additional_nameservers ? 1 : 0
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "nsfs9.${var.domain}"
+  type    = "A"
+  ttl     = local.default_ttl
+  records = [var.ns4_ip]
+}
+
+
+
 # Custom NS records (override AWS nameservers)
 resource "aws_route53_record" "custom_ns" {
   count   = var.enable_custom_nameservers ? 1 : 0
