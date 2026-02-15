@@ -1,185 +1,63 @@
-# ===================================
-# Neo VPS - Configuration Example
-# ===================================
-# Copy this file and customize for each customer
+# ================================================================
+# NEO VPS - Terraform Variables Example
+# ================================================================
+# Copy this file to terraform.tfvars and update with your values
+# ================================================================
 
-# ===================================
-# CUSTOMER INFORMATION
-# ===================================
+# ================================================================
+# DNS CONFIGURATION
+# ================================================================
 
-customer_id    = "customer-001"
-customer_domain = "example.com"
-customer_email  = "admin@example.com"
-environment     = "production"  # production, staging, or development
+# Custom nameservers (Primary & Secondary)
+enable_custom_nameservers = true
+ns1_ip = "18.191.22.15"      # Primary DNS IP (ns1.nexus-dxb.com)
+ns2_ip = "YOUR_NS2_IP_HERE"  # Secondary DNS IP (ns2.nexus-dxb.com)
 
-# ===================================
-# CONTROL PANEL SELECTION
-# ===================================
-# Choose ONE of: cyberpanel, cpanel, directadmin, none
+# Additional nameservers (NEW)
+enable_additional_nameservers = true
+ns3_ip = "54.152.161.12"     # nsfs.nexus-dxb.com
+ns4_ip = "54.152.161.12"     # nsfs9-nexus-dxb.com
 
-control_panel = "cyberpanel"
+# ================================================================
+# CUSTOMER & DOMAIN INFO
+# ================================================================
 
-# Options explained:
-# - cyberpanel:    FREE, 15-20 min install, OpenLiteSpeed
-# - cpanel:        $15-45/mo, 60-90 min install, Industry standard (requires license)
-# - directadmin:   $5-29/mo, Manual install, Budget-friendly (requires license)
-# - none:          FREE, 2-3 min setup, Clean server for custom setup
+customer_id = "customer-001"
+domain      = "example.com"
+server_ip   = "YOUR_SERVER_IP_HERE"
 
-# ===================================
-# AWS CONFIGURATION
-# ===================================
+# ================================================================
+# MAIL CONFIGURATION
+# ================================================================
 
-aws_region = "us-east-1"
+enable_mail_records = true
+mail_server_ip      = ""  # Leave empty to use server_ip
 
-# Network (from network module outputs or existing VPC)
-vpc_id        = "vpc-0123456789abcdef0"
-subnet_id     = "subnet-0123456789abcdef0"
+# ================================================================
+# PANEL CONFIGURATION
+# ================================================================
 
-# ===================================
-# INSTANCE CONFIGURATION
-# ===================================
+panel_type = "cpanel"  # Options: cpanel, cyberpanel, directadmin, none
 
-instance_type = "t3.medium"  # Options: t3.micro, t3.small, t3.medium, t3.large
-
-# Storage
-root_volume_size = 50   # GB (30-1000)
-data_volume_size = 100  # GB (50-16384)
-
-# ===================================
-# OPERATING SYSTEM
-# ===================================
-
-os_type    = "almalinux"  # Options: almalinux, ubuntu, rocky
-os_version = "8"          # AlmaLinux: 8 or 9, Ubuntu: 20.04 or 22.04
-
-# Use custom Golden AMI (recommended for production)
-use_custom_ami = false
-custom_ami_id  = ""  # Set if use_custom_ami = true
-
-# ===================================
-# SSH ACCESS
-# ===================================
-
-# Option 1: Create new key pair
-create_key_pair = false
-public_key      = ""  # Your SSH public key content
-
-# Option 2: Use existing key pair
-existing_key_pair = "neo-vps-key"  # Name of existing AWS key pair
-
-# ===================================
-# NETWORKING
-# ===================================
-
-allocate_elastic_ip = true  # Recommended for production
-
-# ===================================
-# BACKUP CONFIGURATION
-# ===================================
-
-# S3 Backups
-backup_retention_days = 30  # Days to keep S3 backups
-
-# EBS Snapshots
-enable_daily_snapshots   = true
-snapshot_retention_days  = 7  # Days to keep snapshots
-
-# ===================================
+# ================================================================
 # MONITORING
-# ===================================
+# ================================================================
 
-enable_detailed_monitoring = false  # Set true for production (extra cost)
-enable_cloudwatch_alarms   = false  # Requires SNS topic for notifications
+enable_health_check = false
+alarm_actions       = []  # Add SNS topic ARNs if needed
 
-# ===================================
-# PLAN EXAMPLES
-# ===================================
+# ================================================================
+# ENVIRONMENT
+# ================================================================
 
-# ─────────────────────────────────
-# BASIC PLAN - $14/month cost
-# ─────────────────────────────────
-# instance_type     = "t3.micro"
-# root_volume_size  = 30
-# data_volume_size  = 50
-# control_panel     = "cyberpanel"  # or "none"
-# Recommended sell price: $49/month
+environment = "production"  # Options: production, staging, development
 
-# ─────────────────────────────────
-# STANDARD PLAN - $80/month cost
-# ─────────────────────────────────
-# instance_type     = "t3.medium"
-# root_volume_size  = 50
-# data_volume_size  = 100
-# control_panel     = "cyberpanel"  # or "cpanel"
-# Recommended sell price: $149/month
+# ================================================================
+# TAGS
+# ================================================================
 
-# ─────────────────────────────────
-# PREMIUM PLAN - $143/month cost
-# ─────────────────────────────────
-# instance_type     = "t3.large"
-# root_volume_size  = 50
-# data_volume_size  = 200
-# control_panel     = "cpanel"
-# enable_detailed_monitoring = true
-# Recommended sell price: $299/month
-
-# ===================================
-# PANEL-SPECIFIC NOTES
-# ===================================
-
-# CyberPanel:
-# - FREE and open source
-# - OpenLiteSpeed web server
-# - Best for most users
-# - No license needed
-# - Access: https://IP:8090
-# - Default user: admin
-# - Password location: /root/.cyberpanel_password
-
-# cPanel/WHM:
-# - Requires license ($15-45/month)
-# - Get license: https://cpanel.net/pricing/
-# - Industry standard
-# - Extensive features
-# - Access: https://IP:2087 (WHM), https://IP:2083 (cPanel)
-# - Default user: root
-# - Password location: /root/.whm_password
-
-# DirectAdmin:
-# - Requires license ($5-29/month)
-# - Get license: https://www.directadmin.com/trial.php
-# - Budget-friendly
-# - Simple interface
-# - Manual installation step required
-# - Access: https://IP:2222
-# - Setup guide: /root/DIRECTADMIN_INSTALL_GUIDE.txt
-
-# Clean Server (none):
-# - No control panel
-# - Firewall + Fail2Ban configured
-# - Perfect for developers
-# - Full customization
-# - SSH access only
-# - Install your own stack
-
-# ===================================
-# COST OPTIMIZATION TIPS
-# ===================================
-
-# Development environment:
-# - Set instance_type = "t3.micro"
-# - Set control_panel = "none"
-# - Disable detailed monitoring
-# Total cost: ~$14/month
-
-# Production budget:
-# - Set instance_type = "t3.small"
-# - Use "cyberpanel" (free)
-# - Keep snapshots = 7 days
-# Total cost: ~$40/month
-
-# Production standard:
-# - Set instance_type = "t3.medium"
-# - Use "cyberpanel" or "cpanel"
-# - Enable monitoring
-# Total cost: ~$80-115/month
+tags = {
+  Project     = "NEO-VPS"
+  ManagedBy   = "Terraform"
+  Environment = "production"
+}
