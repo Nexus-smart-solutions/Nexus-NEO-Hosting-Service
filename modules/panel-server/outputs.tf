@@ -79,10 +79,11 @@ output "panel_hostname" {
 # ===================================
 
 output "ssh_command" {
-  value = var.create_key_pair || var.existing_key_pair != "" ?
-    "${local.ssh_base_command}" :
-    "Use SSM Session Manager"
+  value = (
+    var.create_key_pair || var.existing_key_pair != ""
+  ) ? local.ssh_base_command : null
 }
+
 
 output "ssm_connect_command" {
   value = "aws ssm start-session --target ${aws_instance.panel_server.id}"
