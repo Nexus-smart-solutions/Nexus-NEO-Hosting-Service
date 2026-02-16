@@ -1,148 +1,78 @@
-name: NEO CI
+name: Terraform CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+    branches:
+      - main
 
-env:
-  AWS_REGION: us-east-2
-  TF_VERSION: 1.6.0
+permissions:
+  contents: read
+  security-events: write
 
 jobs:
   terraform:
-    name: 'Terraform Validate'
+    name: Terraform Validate & Scan
     runs-on: ubuntu-latest
-    
-    # IMPORTANT: Don't run on every commit, only on PR
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
-    
+
+    env:
+      TF_VERSION: 1.6.6
+      AWS_REGION: us-east-1
+
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
-      
+
+      # ----------------------------
+      # Setup Terraform
+      # ----------------------------
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
-      
-      # ================================================================
-      # CRITICAL: Configure AWS Credentials
-      # ================================================================
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-      
-      # ================================================================
-      # Terraform Format Check
-      # ================================================================
-      - name: Terraform Format
-        id: fmt
-        run: terraform fmt -check -recursive
-        continue-on-error: true
-      
-      # ================================================================
-      # Terraform Init (WITHOUT backend for CI)
-      # ================================================================
-      - name: Terraform Init (CI Mode)
-        id: init
-        run: |
-          # Create minimal backend config for CI
-          cat > backend_override.tf << 'EOF'
-          terraform {
-            backend "local" {
-              path = "terraform.tfstate"
-            }
-          }
-          EOF
-          
-          terraform init -backend=false
-      
-      # ================================================================
-      # Terraform Validate
-      # ================================================================
-      - name: Terraform Validate
-        id: validate
-        run: terraform validate -no-color
-      
-      # ================================================================
-      # Terraform Plan (Dry-run only, no apply)
-      # ================================================================
-      - name: Terraform Plan (Dry-run)
-        id: plan
-        run: |
-          # Create dummy tfvars for CI
-          cat > ci.auto.tfvars << 'EOF'
-          customer_id     = "ci-test"
-          customer_domain = "ci-test.example.com"
-          customer_email  = "ci@example.com"
-          os_type         = "almalinux-8"
-          control_panel   = "none"
-          instance_type   = "t3.micro"
-          aws_region      = "us-east-2"
-          environment     = "ci"
-          EOF
-          
-          terraform plan -no-color -input=false
-        continue-on-error: true
-        env:
-          TF_VAR_customer_id: "ci-test"
-          TF_VAR_customer_domain: "ci-test.example.com"
-      
-      # ================================================================
-      # Comment PR with results
-      # ================================================================
-      - name: Comment PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const output = `#### Terraform Format: \`${{ steps.fmt.outcome }}\`
-            #### Terraform Init: \`${{ steps.init.outcome }}\`
-            #### Terraform Validate: \`${{ steps.validate.outcome }}\`
-            #### Terraform Plan: \`${{ steps.plan.outcome }}\`
-            
-            <details><summary>Validation Output</summary>
-            
-            \`\`\`
-            ${{ steps.validate.outputs.stdout }}
-            \`\`\`
-            
-            </details>
-            
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            })
-      
-      # ================================================================
-      # Status Check
-      # ================================================================
-      - name: Terraform Status
-        if: steps.validate.outcome == 'failure'
-        run: exit 1
 
-  # ================================================================
-  # Security Scan (Optional but recommended)
-  # ================================================================
-  security:
-    name: 'Security Scan'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
+      # ----------------------------
+      # Terraform Format Check
+      # ----------------------------
+      - name: Terraform Format
+        run: terraform fmt -check -recursive
+
+      # ----------------------------
+      # Terraform Init (No Backend)
+      # ----------------------------
+      - name: Terraform Init
+        run: terraform init -backend=false
+
+      # ----------------------------
+      # Terraform Validate
+      # ----------------------------
+      - name: Terraform Validate
+        run: terraform validate
+
+      # ----------------------------
+      # tfsec Security Scan
+      # ----------------------------
       - name: Run tfsec
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
-          soft_fail: true
+          version: v1.28.1
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          working_directory: .
+          soft_fail: false
+
+      # ----------------------------
+      # Terraform Plan
+      # ----------------------------
+      - name: Terraform Plan
+        run: terraform plan -no-color -out=tfplan
+
+      # ----------------------------
+      # Upload Plan Artifact
+      # ----------------------------
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: tfplan
