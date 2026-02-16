@@ -658,3 +658,21 @@ if [[ "$DRY_RUN" == false ]]; then
 fi
 
 echo ""
+
+# ==========================================
+# Integration with provision-customer.sh
+# Get server IP
+# ==========================================
+
+SERVER_IP=$(terraform output -raw elastic_ip)
+
+# Run health check
+if ./scripts/health-checks/check-provisioning.sh "$DOMAIN" "$PANEL" "$SERVER_IP"; then
+  echo "✅ Server ready!"
+  # Send success email
+else
+  echo "❌ Health check failed!"
+  # Trigger rollback
+  ./scripts/health-checks/rollback-failed.sh "$DOMAIN"
+  exit 1
+fi
