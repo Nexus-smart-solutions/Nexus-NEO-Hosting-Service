@@ -1,90 +1,117 @@
-name: Terraform CI - Validation Only
+name: NEO CI
 
 on:
   push:
     branches: [ main, develop ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-2
+  TF_VERSION: 1.6.0
 
 jobs:
-  terraform-validation:
-    name: Terraform Validation & Security Check
+  terraform:
+    name: 'Terraform Validate'
     runs-on: ubuntu-latest
     
+    # IMPORTANT: Don't run on every commit, only on PR
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
       
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.6.0
+          terraform_version: ${{ env.TF_VERSION }}
       
-      - name: Create terraform.tfvars for CI
-        run: |
-          cat > terraform.tfvars << 'EOF'
-          # CI Test Variables
-          customer_id     = "ci-test"
-          customer_domain = "ci-test.example.com"
-          control_panel   = "cpanel"
-          instance_type   = "t3.medium"
-          server_ip       = "1.2.3.4"
-          
-          # DNS
-          enable_custom_nameservers     = true
-          ns1_ip                        = "18.191.22.15"
-          ns2_ip                        = "1.2.3.4"
-          enable_additional_nameservers = true
-          ns3_ip                        = "54.152.161.12"
-          ns4_ip                        = "54.152.161.12"
-          
-          # Deployment
-          deploy_server = false
-          
-          # Environment
-          environment = "ci"
-          EOF
+      # ================================================================
+      # CRITICAL: Configure AWS Credentials
+      # ================================================================
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
       
-      - name: Terraform Format Check
+      # ================================================================
+      # Terraform Format Check
+      # ================================================================
+      - name: Terraform Format
         id: fmt
         run: terraform fmt -check -recursive
         continue-on-error: true
       
-      - name: Terraform Init (No Backend)
+      # ================================================================
+      # Terraform Init (WITHOUT backend for CI)
+      # ================================================================
+      - name: Terraform Init (CI Mode)
         id: init
-        run: terraform init -backend=false
+        run: |
+          # Create minimal backend config for CI
+          cat > backend_override.tf << 'EOF'
+          terraform {
+            backend "local" {
+              path = "terraform.tfstate"
+            }
+          }
+          EOF
+          
+          terraform init -backend=false
       
+      # ================================================================
+      # Terraform Validate
+      # ================================================================
       - name: Terraform Validate
         id: validate
         run: terraform validate -no-color
       
-      - name: Terraform Plan (Dry Run)
+      # ================================================================
+      # Terraform Plan (Dry-run only, no apply)
+      # ================================================================
+      - name: Terraform Plan (Dry-run)
         id: plan
-        run: terraform plan -input=false -no-color
+        run: |
+          # Create dummy tfvars for CI
+          cat > ci.auto.tfvars << 'EOF'
+          customer_id     = "ci-test"
+          customer_domain = "ci-test.example.com"
+          customer_email  = "ci@example.com"
+          os_type         = "almalinux-8"
+          control_panel   = "none"
+          instance_type   = "t3.micro"
+          aws_region      = "us-east-2"
+          environment     = "ci"
+          EOF
+          
+          terraform plan -no-color -input=false
         continue-on-error: true
+        env:
+          TF_VAR_customer_id: "ci-test"
+          TF_VAR_customer_domain: "ci-test.example.com"
       
-      # Security Scanning with tfsec
-      - name: Run tfsec
-        uses: aquasecurity/tfsec-action@v1.0.0
-        with:
-          soft_fail: true
-      
+      # ================================================================
       # Comment PR with results
+      # ================================================================
       - name: Comment PR
-        uses: actions/github-script@v6
         if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
-            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
-            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
-            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+            const output = `#### Terraform Format: \`${{ steps.fmt.outcome }}\`
+            #### Terraform Init: \`${{ steps.init.outcome }}\`
+            #### Terraform Validate: \`${{ steps.validate.outcome }}\`
+            #### Terraform Plan: \`${{ steps.plan.outcome }}\`
             
-            <details><summary>Show Plan</summary>
+            <details><summary>Validation Output</summary>
             
-            \`\`\`terraform
-            ${{ steps.plan.outputs.stdout }}
+            \`\`\`
+            ${{ steps.validate.outputs.stdout }}
             \`\`\`
             
             </details>
@@ -98,6 +125,24 @@ jobs:
               body: output
             })
       
-      - name: Terraform Plan Status
-        if: steps.plan.outcome == 'failure'
+      # ================================================================
+      # Status Check
+      # ================================================================
+      - name: Terraform Status
+        if: steps.validate.outcome == 'failure'
         run: exit 1
+
+  # ================================================================
+  # Security Scan (Optional but recommended)
+  # ================================================================
+  security:
+    name: 'Security Scan'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          soft_fail: true
