@@ -240,7 +240,9 @@ root_block_device {
   encrypted = true
 }
 
-disable_api_termination = true
+lifecycle {
+  prevent_destroy = true  # يمنع حذف الـ instance بالغلط
+}
 
 resource "aws_instance" "panel_server" {
   ami           = local.ami_id
