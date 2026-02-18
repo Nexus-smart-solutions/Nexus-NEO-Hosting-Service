@@ -241,7 +241,7 @@ root_block_device {
 }
 
 lifecycle {
-  prevent_destroy = true  # يمنع حذف الـ instance بالغلط
+  prevent_destroy = true # يمنع حذف الـ instance بالغلط
 }
 
 resource "aws_instance" "panel_server" {
