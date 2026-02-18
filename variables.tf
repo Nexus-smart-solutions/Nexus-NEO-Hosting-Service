@@ -13,9 +13,10 @@ variable "custom_ami_id" {
   type        = string
   default     = ""
   
+  # validation بسيط للـ AMI format
   validation {
-    condition     = var.use_custom_ami ? (var.custom_ami_id != "") : true
-    error_message = "custom_ami_id must be provided when use_custom_ami is true"
+    condition     = can(regex("^ami-", var.custom_ami_id)) || var.custom_ami_id == ""
+    error_message = "Custom AMI ID must start with 'ami-' or be empty."
   }
 }
 
