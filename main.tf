@@ -1,119 +1,275 @@
-# ================================================================
-# NEO VPS - Main Configuration
-# ================================================================
-# Multi-OS automated hosting provisioning
-# ================================================================
+# ===================================
+# NEO VPS PROVISIONING SYSTEM - MAIN
+# ===================================
+# This configuration provisions a complete VPS hosting environment
+# with support for multiple control panels (CyberPanel, cPanel, DirectAdmin)
+# ===================================
 
 terraform {
   required_version = ">= 1.6.0"
-
+  
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 5.0"  # Updated to 5.x for better compatibility
     }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.0"
     }
   }
-
+  
   # Backend configuration (uncomment for production)
   # backend "s3" {
   #   bucket         = "neo-tf-state-ohio"
-  #   key            = "global/terraform.tfstate"
+  #   key            = "neo-vps/terraform.tfstate"
   #   region         = "us-east-2"
-  #   dynamodb_table = "neo-terraform-locks"
+  #   dynamodb_table = "neo-tf-locks"
   #   encrypt        = true
   # }
 }
 
-# ================================================================
-# PROVIDER
-# ================================================================
+# ===================================
+# PROVIDER CONFIGURATION
+# ===================================
 
 provider "aws" {
   region = var.aws_region
-
+  
   default_tags {
     tags = {
       Project     = "Neo-VPS"
       ManagedBy   = "Terraform"
       Environment = var.environment
-      Repository  = "github.com/Nexus-smart-solutions/Nexus-NEO-Hosting-Service"
     }
   }
 }
 
-# ================================================================
-# MODULES
-# ================================================================
+# ===================================
+# DATA SOURCES
+# ===================================
 
-# Network Module
+# Get available AZs
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
+# ===================================
+# NETWORK MODULE
+# ===================================
+
 module "network" {
   source = "./modules/network"
-
+  
   customer_domain = var.customer_domain
   vpc_cidr        = var.vpc_cidr
   environment     = var.environment
-
-  tags = var.tags
+  
+  # Optional: Specify AZs
+  availability_zones = data.aws_availability_zones.available.names
+  
+  tags = {
+    Customer = var.customer_id
+    Domain   = var.customer_domain
+  }
 }
 
-# Security Module
+# ===================================
+# SECURITY MODULE
+# ===================================
+
 module "security" {
   source = "./modules/security"
-
+  
   vpc_id          = module.network.vpc_id
   customer_domain = var.customer_domain
   admin_cidrs     = var.admin_cidrs
   environment     = var.environment
-
-  tags = var.tags
+  
+  # Panel-specific ports
+  panel_type = var.control_panel
+  
+  tags = {
+    Customer = var.customer_id
+    Domain   = var.customer_domain
+  }
+  
+  depends_on = [module.network]
 }
 
-# Panel Server Module
+# ===================================
+# PANEL SERVER MODULE
+# ===================================
+
 module "panel_server" {
   source = "./modules/panel-server"
-
-  customer_id      = var.customer_id
-  customer_domain  = var.customer_domain
-  customer_email   = var.customer_email
-  os_type          = var.os_type
-  control_panel    = var.control_panel
-  instance_type    = var.instance_type
-  root_volume_size = var.root_volume_size
-  data_volume_size = var.data_volume_size
-
-  vpc_id            = module.network.vpc_id
-  subnet_id         = module.network.public_subnet_ids[0]
-  security_group_id = module.security.panel_security_group_id
-
-  ssh_key_name = var.ssh_key_name
-  environment  = var.environment
-
-  tags = var.tags
+  
+  # Customer Information
+  customer_id          = var.customer_id
+  customer_domain      = var.customer_domain
+  customer_email       = var.customer_email
+  environment          = var.environment
+  
+  # Server Configuration
+  os_type              = var.os_type
+  os_version           = var.os_version
+  control_panel        = var.control_panel
+  instance_type        = var.instance_type
+  root_volume_size     = var.root_volume_size
+  data_volume_size     = var.data_volume_size
+  
+  # Networking
+  subnet_id            = module.network.public_subnet_ids[0]
+  security_group_id    = module.security.panel_security_group_id
+  
+  # Key Pair Configuration
+  create_key_pair      = var.create_key_pair
+  public_key           = var.public_key
+  existing_key_pair    = var.existing_key_pair
+  
+  # Backup Settings
+  backup_retention_days = var.backup_retention_days
+  
+  # Feature Flags
+  enable_detailed_monitoring = var.enable_detailed_monitoring
+  enable_cloudwatch_alarms   = var.enable_cloudwatch_alarms
+  enable_daily_snapshots     = var.enable_daily_snapshots
+  snapshot_retention_days    = var.snapshot_retention_days
+  allocate_elastic_ip        = var.allocate_eip
+  
+  # AMI Options
+  use_custom_ami       = var.use_custom_ami
+  custom_ami_id        = var.custom_ami_id
+  
+  # Panel Hostname
+  panel_hostname       = var.panel_hostname
 
   depends_on = [module.network, module.security]
 }
 
-# Route53 DNS Module (Optional)
+# ===================================
+# ROUTE53 MODULE (Optional)
+# ===================================
+
 module "route53" {
   count  = var.enable_route53 ? 1 : 0
   source = "./modules/route53"
-
+  
   customer_id = var.customer_id
   domain      = var.customer_domain
-  server_ip   = module.panel_server.elastic_ip
+  server_ip   = var.allocate_eip ? module.panel_server.elastic_ip : module.panel_server.private_ip
   environment = var.environment
   panel_type  = var.control_panel
-
+  
+  # DNS Records Configuration
   enable_mail_records       = var.enable_mail_records
   enable_custom_nameservers = var.enable_custom_nameservers
   ns1_ip                    = var.ns1_ip
   ns2_ip                    = var.ns2_ip
-
-  tags = var.tags
-
+  
+  # Alarm Actions (SNS Topic ARN)
+  alarm_actions = var.sns_topic_arn
+  
+  tags = {
+    Customer = var.customer_id
+    Domain   = var.customer_domain
+  }
+  
   depends_on = [module.panel_server]
+}
+
+# ===================================
+# MONITORING (Optional)
+# ===================================
+
+module "monitoring" {
+  count  = var.enable_enhanced_monitoring ? 1 : 0
+  source = "./modules/monitoring"
+  
+  customer_id   = var.customer_id
+  instance_id   = module.panel_server.instance_id
+  environment   = var.environment
+  
+  # SNS Topic for Alerts
+  sns_topic_arn = var.sns_topic_arn
+  
+  # Dashboard
+  create_dashboard = var.create_dashboard
+  
+  tags = {
+    Customer = var.customer_id
+    Domain   = var.customer_domain
+  }
+  
+  depends_on = [module.panel_server]
+}
+
+# ===================================
+# OUTPUTS
+# ===================================
+
+output "instance_id" {
+  description = "ID of the panel server instance"
+  value       = module.panel_server.instance_id
+}
+
+output "private_ip" {
+  description = "Private IP of the panel server"
+  value       = module.panel_server.private_ip
+}
+
+output "public_ip" {
+  description = "Public IP (if Elastic IP allocated)"
+  value       = var.allocate_eip ? module.panel_server.elastic_ip : null
+}
+
+output "panel_url" {
+  description = "Panel admin URL"
+  value       = var.allocate_eip ? "https://${var.control_panel != "none" ? module.panel_server.panel_hostname : ""}" : null
+}
+
+output "backup_bucket" {
+  description = "S3 bucket name for backups"
+  value       = module.panel_server.backup_bucket
+}
+
+output "vpc_id" {
+  description = "VPC ID"
+  value       = module.network.vpc_id
+}
+
+output "subnet_ids" {
+  description = "Subnet IDs"
+  value       = module.network.public_subnet_ids
+}
+
+output "security_group_id" {
+  description = "Security Group ID"
+  value       = module.security.panel_security_group_id
+}
+
+output "route53_zone_id" {
+  description = "Route53 Hosted Zone ID"
+  value       = var.enable_route53 ? module.route53[0].zone_id : null
+}
+
+output "connection_commands" {
+  description = "Commands to connect to the server"
+  value = <<-EOT
+    # Connect to the server:
+    ssh -i ${var.create_key_pair ? "~/path/to/private-key.pem" : var.existing_key_pair} ${var.os_type == "almalinux" ? "almalinux" : "ubuntu"}@${var.allocate_eip ? module.panel_server.elastic_ip : module.panel_server.private_ip}
+    
+    ${var.control_panel != "none" ? "# Panel URL: https://${module.panel_server.panel_hostname}" : ""}
+  EOT
+}
+
+output "module_info" {
+  description = "Information about the modules used"
+  value = {
+    network   = "modules/network"
+    security  = "modules/security"
+    panel     = "modules/panel-server"
+    route53   = var.enable_route53 ? "modules/route53" : "disabled"
+    monitoring = var.enable_enhanced_monitoring ? "modules/monitoring" : "disabled"
+  }
 }
