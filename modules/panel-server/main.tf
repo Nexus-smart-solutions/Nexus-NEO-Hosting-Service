@@ -4,9 +4,9 @@
 # ===================================
 
 locals {
-  name_prefix = "${var.customer_domain}-${var.environment}"
+  name_prefix    = "${var.customer_domain}-${var.environment}"
   panel_hostname = var.panel_hostname != "" ? var.panel_hostname : "panel.${var.customer_domain}"
-  
+
   # Panel-specific configurations
   panel_ports = {
     cyberpanel = {
@@ -43,7 +43,7 @@ data "aws_ami" "golden_ami" {
     name = "name"
     values = var.os_type == "almalinux" ? [
       "AlmaLinux OS ${var.os_version}*"
-    ] : [
+      ] : [
       "ubuntu/images/hvm-ssd/ubuntu-*-${var.os_version}-amd64-server-*"
     ]
   }
@@ -265,13 +265,13 @@ resource "aws_instance" "panel_server" {
 
   # User Data - Install selected control panel
   user_data = templatefile("${path.module}/user-data/${var.control_panel}.sh.tpl", {
-    domain              = var.customer_domain
-    panel_hostname      = local.panel_hostname
-    backup_bucket       = aws_s3_bucket.backups.bucket
-    region              = data.aws_region.current.name
-    customer_email      = var.customer_email
-    enable_monitoring   = var.enable_detailed_monitoring
-    control_panel       = var.control_panel
+    domain            = var.customer_domain
+    panel_hostname    = local.panel_hostname
+    backup_bucket     = aws_s3_bucket.backups.bucket
+    region            = data.aws_region.current.name
+    customer_email    = var.customer_email
+    enable_monitoring = var.enable_detailed_monitoring
+    control_panel     = var.control_panel
   })
 
   # Enable detailed monitoring if requested
@@ -285,20 +285,20 @@ resource "aws_instance" "panel_server" {
   }
 
   tags = {
-    Name            = "${local.name_prefix}-server"
-    Domain          = var.customer_domain
-    ControlPanel    = var.control_panel
-    Customer        = var.customer_id
-    Environment     = var.environment
-    ManagedBy       = "Terraform"
-    Project         = "Neo-VPS"
-    BillingStatus   = "active"
+    Name          = "${local.name_prefix}-server"
+    Domain        = var.customer_domain
+    ControlPanel  = var.control_panel
+    Customer      = var.customer_id
+    Environment   = var.environment
+    ManagedBy     = "Terraform"
+    Project       = "Neo-VPS"
+    BillingStatus = "active"
   }
 
   lifecycle {
     ignore_changes = [
-      user_data,  # Don't recreate on user_data changes
-      ami         # Don't recreate on AMI updates
+      user_data, # Don't recreate on user_data changes
+      ami        # Don't recreate on AMI updates
     ]
   }
 

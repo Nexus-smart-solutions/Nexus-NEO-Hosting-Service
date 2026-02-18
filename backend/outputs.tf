@@ -44,7 +44,7 @@ output "lock_table_arn" {
 
 output "backend_config" {
   description = "Backend configuration template"
-  value = <<-EOT
+  value       = <<-EOT
     terraform {
       backend "s3" {
         bucket         = "${aws_s3_bucket.terraform_state.id}"

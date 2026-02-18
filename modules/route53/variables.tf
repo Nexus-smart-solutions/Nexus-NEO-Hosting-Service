@@ -10,7 +10,7 @@ variable "customer_id" {
 variable "domain" {
   description = "Domain name for the hosted zone"
   type        = string
-  
+
   validation {
     condition     = can(regex("^([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}$", var.domain))
     error_message = "Domain must be a valid domain name"
@@ -20,7 +20,7 @@ variable "domain" {
 variable "server_ip" {
   description = "Server IP address for A records"
   type        = string
-  
+
   validation {
     condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}$", var.server_ip))
     error_message = "Must be a valid IPv4 address"

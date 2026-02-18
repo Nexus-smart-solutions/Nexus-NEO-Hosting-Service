@@ -1,7 +1,7 @@
 variable "ami_id" {
   description = "AMI ID for DNS server (AlmaLinux 8)"
   type        = string
-  default     = "ami-03688ae343e09f184"  #  AlmaLinux AMI
+  default     = "ami-03688ae343e09f184" #  AlmaLinux AMI
 }
 
 variable "subnet_id" {

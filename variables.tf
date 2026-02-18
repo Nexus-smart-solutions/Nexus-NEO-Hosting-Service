@@ -9,7 +9,7 @@
 variable "customer_id" {
   description = "Unique customer identifier"
   type        = string
-  
+
   validation {
     condition     = can(regex("^[a-z0-9-]+$", var.customer_id))
     error_message = "Customer ID must be lowercase alphanumeric with hyphens only"
@@ -19,7 +19,7 @@ variable "customer_id" {
 variable "customer_domain" {
   description = "Customer domain name"
   type        = string
-  
+
   validation {
     condition     = can(regex("^([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}$", var.customer_domain))
     error_message = "Must be a valid domain name"
@@ -29,7 +29,7 @@ variable "customer_domain" {
 variable "customer_email" {
   description = "Customer email address"
   type        = string
-  
+
   validation {
     condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.customer_email))
     error_message = "Must be a valid email address"
@@ -44,7 +44,7 @@ variable "os_type" {
   description = "Operating system type"
   type        = string
   default     = "almalinux-8"
-  
+
   validation {
     condition     = contains(["almalinux-8", "almalinux-9", "ubuntu-20.04", "ubuntu-22.04", "ubuntu-24.04", "rocky-8", "rocky-9"], var.os_type)
     error_message = "OS type must be one of: almalinux-8, almalinux-9, ubuntu-20.04, ubuntu-22.04, ubuntu-24.04, rocky-8, rocky-9"
@@ -55,7 +55,7 @@ variable "control_panel" {
   description = "Control panel to install"
   type        = string
   default     = "cyberpanel"
-  
+
   validation {
     condition     = contains(["cpanel", "cyberpanel", "directadmin", "none"], var.control_panel)
     error_message = "Control panel must be one of: cpanel, cyberpanel, directadmin, none"

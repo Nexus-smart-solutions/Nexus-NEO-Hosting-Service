@@ -45,13 +45,13 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   statistic           = "Average"
   threshold           = 80
   alarm_description   = "CPU utilization above 80%"
-  
+
   alarm_actions = var.sns_topic_arn != "" ? [var.sns_topic_arn] : []
-  
+
   dimensions = {
     InstanceId = var.instance_id
   }
-  
+
   tags = {
     Customer = var.customer_id
   }
@@ -72,13 +72,13 @@ resource "aws_cloudwatch_metric_alarm" "memory_high" {
   statistic           = "Average"
   threshold           = 85
   alarm_description   = "Memory utilization above 85%"
-  
+
   alarm_actions = var.sns_topic_arn != "" ? [var.sns_topic_arn] : []
-  
+
   dimensions = {
     InstanceId = var.instance_id
   }
-  
+
   tags = {
     Customer = var.customer_id
   }
@@ -99,14 +99,14 @@ resource "aws_cloudwatch_metric_alarm" "disk_high" {
   statistic           = "Average"
   threshold           = 80
   alarm_description   = "Disk usage above 80%"
-  
+
   alarm_actions = var.sns_topic_arn != "" ? [var.sns_topic_arn] : []
-  
+
   dimensions = {
     InstanceId = var.instance_id
     path       = "/"
   }
-  
+
   tags = {
     Customer = var.customer_id
   }
@@ -127,13 +127,13 @@ resource "aws_cloudwatch_metric_alarm" "instance_status" {
   statistic           = "Average"
   threshold           = 0
   alarm_description   = "Instance status check failed"
-  
+
   alarm_actions = var.sns_topic_arn != "" ? [var.sns_topic_arn] : []
-  
+
   dimensions = {
     InstanceId = var.instance_id
   }
-  
+
   tags = {
     Customer = var.customer_id
   }

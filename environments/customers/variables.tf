@@ -1,6 +1,6 @@
 variable "aws_region" {
-  type        = string
-  default     = "us-east-1"
+  type    = string
+  default = "us-east-1"
 }
 
 variable "project_name" {
@@ -19,7 +19,7 @@ variable "control_panel" {
   type = string
 
   validation {
-    condition     = contains(["cyberpanel","cpanel","directadmin","none"], var.control_panel)
+    condition     = contains(["cyberpanel", "cpanel", "directadmin", "none"], var.control_panel)
     error_message = "Invalid control panel selected."
   }
 }

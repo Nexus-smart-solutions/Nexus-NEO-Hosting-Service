@@ -22,16 +22,16 @@ terraform {
 locals {
   # Common tags
   common_tags = merge(var.tags, {
-    Module      = "route53"
-    Customer    = var.customer_id
-    Domain      = var.domain
-    ManagedBy   = "Terraform"
+    Module    = "route53"
+    Customer  = var.customer_id
+    Domain    = var.domain
+    ManagedBy = "Terraform"
   })
-  
+
   # DNS Records TTLs
   default_ttl = 300
-  ns_ttl      = 172800  # 2 days for NS records
-  mx_ttl      = 3600    # 1 hour for MX records
+  ns_ttl      = 172800 # 2 days for NS records
+  mx_ttl      = 3600   # 1 hour for MX records
 }
 
 # ================================================================
@@ -42,7 +42,7 @@ resource "aws_route53_zone" "main" {
   name          = var.domain
   comment       = "Managed by NEO VPS for ${var.customer_id}"
   force_destroy = var.environment != "production"
-  
+
   tags = merge(local.common_tags, {
     Name = "${var.domain}-hosted-zone"
   })
@@ -132,7 +132,7 @@ resource "aws_route53_record" "custom_ns" {
   name    = var.domain
   type    = "NS"
   ttl     = local.ns_ttl
-  
+
   records = concat(
     [
       "ns1.${var.domain}",
@@ -155,7 +155,7 @@ resource "aws_route53_record" "mx" {
   name    = var.domain
   type    = "MX"
   ttl     = local.mx_ttl
-  
+
   records = [
     "10 mail.${var.domain}"
   ]
@@ -172,7 +172,7 @@ resource "aws_route53_record" "spf" {
   name    = var.domain
   type    = "TXT"
   ttl     = local.default_ttl
-  
+
   records = [
     "v=spf1 mx a ip4:${var.server_ip} ~all"
   ]
@@ -185,7 +185,7 @@ resource "aws_route53_record" "dmarc" {
   name    = "_dmarc.${var.domain}"
   type    = "TXT"
   ttl     = local.default_ttl
-  
+
   records = [
     "v=DMARC1; p=quarantine; rua=mailto:postmaster@${var.domain}"
   ]
@@ -246,7 +246,7 @@ resource "aws_route53_health_check" "server" {
   resource_path     = "/"
   failure_threshold = 3
   request_interval  = 30
-  
+
   tags = merge(local.common_tags, {
     Name = "${var.domain}-health-check"
   })
@@ -265,13 +265,13 @@ resource "aws_cloudwatch_metric_alarm" "health_check" {
   statistic           = "Minimum"
   threshold           = "1"
   treat_missing_data  = "breaching"
-  
+
   alarm_actions = var.alarm_actions
-  
+
   dimensions = {
     HealthCheckId = aws_route53_health_check.server[0].id
   }
-  
+
   tags = local.common_tags
 }
 
