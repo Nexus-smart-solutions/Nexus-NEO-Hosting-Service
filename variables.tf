@@ -1,15 +1,15 @@
-# ================================================================
-# NEO VPS - Variables
-# ================================================================
+# ===================================
+# NEO VPS PROVISIONING SYSTEM - VARIABLES
+# ===================================
 
-# ================================================================
-# CUSTOMER INFO
-# ================================================================
+# ===================================
+# REQUIRED VARIABLES
+# ===================================
 
 variable "customer_id" {
   description = "Unique customer identifier"
   type        = string
-
+  
   validation {
     condition     = can(regex("^[a-z0-9-]+$", var.customer_id))
     error_message = "Customer ID must be lowercase alphanumeric with hyphens only"
@@ -19,7 +19,7 @@ variable "customer_id" {
 variable "customer_domain" {
   description = "Customer domain name"
   type        = string
-
+  
   validation {
     condition     = can(regex("^([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}$", var.customer_domain))
     error_message = "Must be a valid domain name"
@@ -29,25 +29,57 @@ variable "customer_domain" {
 variable "customer_email" {
   description = "Customer email address"
   type        = string
-
+  
   validation {
     condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.customer_email))
     error_message = "Must be a valid email address"
   }
 }
 
-# ================================================================
-# SERVER CONFIG
-# ================================================================
+# ===================================
+# AWS CONFIGURATION
+# ===================================
+
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "environment" {
+  description = "Environment name (dev, staging, production)"
+  type        = string
+  default     = "production"
+  
+  validation {
+    condition     = contains(["dev", "staging", "production"], var.environment)
+    error_message = "Environment must be dev, staging, or production"
+  }
+}
+
+# ===================================
+# SERVER CONFIGURATION
+# ===================================
 
 variable "os_type" {
   description = "Operating system type"
   type        = string
-  default     = "almalinux-8"
-
+  default     = "almalinux"
+  
   validation {
-    condition     = contains(["almalinux-8", "almalinux-9", "ubuntu-20.04", "ubuntu-22.04", "ubuntu-24.04", "rocky-8", "rocky-9"], var.os_type)
-    error_message = "OS type must be one of: almalinux-8, almalinux-9, ubuntu-20.04, ubuntu-22.04, ubuntu-24.04, rocky-8, rocky-9"
+    condition     = contains(["almalinux", "ubuntu"], var.os_type)
+    error_message = "OS type must be almalinux or ubuntu"
+  }
+}
+
+variable "os_version" {
+  description = "OS version (e.g., 8, 9, 22.04)"
+  type        = string
+  default     = "8"
+  
+  validation {
+    condition     = can(regex("^[0-9.]+$", var.os_version))
+    error_message = "OS version must be a valid version number"
   }
 }
 
@@ -55,7 +87,7 @@ variable "control_panel" {
   description = "Control panel to install"
   type        = string
   default     = "cyberpanel"
-
+  
   validation {
     condition     = contains(["cpanel", "cyberpanel", "directadmin", "none"], var.control_panel)
     error_message = "Control panel must be one of: cpanel, cyberpanel, directadmin, none"
@@ -71,7 +103,7 @@ variable "instance_type" {
 variable "root_volume_size" {
   description = "Root volume size in GB"
   type        = number
-  default     = 30
+  default     = 50
 }
 
 variable "data_volume_size" {
@@ -80,14 +112,9 @@ variable "data_volume_size" {
   default     = 100
 }
 
-variable "ssh_key_name" {
-  description = "SSH key pair name"
-  type        = string
-}
-
-# ================================================================
-# NETWORK
-# ================================================================
+# ===================================
+# NETWORKING
+# ===================================
 
 variable "vpc_cidr" {
   description = "VPC CIDR block"
@@ -96,63 +123,157 @@ variable "vpc_cidr" {
 }
 
 variable "admin_cidrs" {
-  description = "Admin IP addresses for SSH access"
+  description = "List of CIDR blocks allowed for admin access"
   type        = list(string)
-  default     = []
+  default     = ["0.0.0.0/0"]  # Change this in production!
 }
 
-# ================================================================
-# DNS
-# ================================================================
+# ===================================
+# KEY PAIR CONFIGURATION
+# ===================================
+
+variable "create_key_pair" {
+  description = "Create a new key pair"
+  type        = bool
+  default     = false
+}
+
+variable "public_key" {
+  description = "Public key material (required if create_key_pair = true)"
+  type        = string
+  default     = ""
+}
+
+variable "existing_key_pair" {
+  description = "Name of existing key pair (required if create_key_pair = false)"
+  type        = string
+  default     = ""
+}
+
+# ===================================
+# BACKUP CONFIGURATION
+# ===================================
+
+variable "backup_retention_days" {
+  description = "Number of days to retain backups in S3"
+  type        = number
+  default     = 30
+}
+
+# ===================================
+# FEATURE FLAGS
+# ===================================
+
+variable "enable_detailed_monitoring" {
+  description = "Enable detailed CloudWatch monitoring"
+  type        = bool
+  default     = true
+}
+
+variable "enable_cloudwatch_alarms" {
+  description = "Enable CloudWatch alarms"
+  type        = bool
+  default     = true
+}
+
+variable "enable_daily_snapshots" {
+  description = "Enable daily EBS snapshots"
+  type        = bool
+  default     = false
+}
+
+variable "snapshot_retention_days" {
+  description = "Number of days to retain snapshots"
+  type        = number
+  default     = 7
+}
+
+variable "allocate_eip" {
+  description = "Allocate Elastic IP"
+  type        = bool
+  default     = true
+}
 
 variable "enable_route53" {
-  description = "Enable Route53 DNS automation"
+  description = "Enable Route53 DNS management"
   type        = bool
   default     = false
 }
 
 variable "enable_mail_records" {
-  description = "Enable mail-related DNS records"
+  description = "Enable mail DNS records"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "enable_custom_nameservers" {
-  description = "Use custom nameservers (Bind9)"
+  description = "Enable custom nameservers"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "ns1_ip" {
-  description = "Primary nameserver IP"
+  description = "IP for ns1 custom nameserver"
   type        = string
   default     = ""
 }
 
 variable "ns2_ip" {
-  description = "Secondary nameserver IP"
+  description = "IP for ns2 custom nameserver"
   type        = string
   default     = ""
 }
 
-# ================================================================
-# GENERAL
-# ================================================================
-
-variable "aws_region" {
-  description = "AWS region"
-  type        = string
-  default     = "us-east-2"
+variable "enable_enhanced_monitoring" {
+  description = "Enable enhanced monitoring with dashboards"
+  type        = bool
+  default     = false
 }
 
-variable "environment" {
-  description = "Environment name"
-  type        = string
-  default     = "production"
+variable "create_dashboard" {
+  description = "Create CloudWatch dashboard"
+  type        = bool
+  default     = false
 }
+
+variable "sns_topic_arn" {
+  description = "SNS topic ARN for alarms"
+  type        = string
+  default     = ""
+}
+
+# ===================================
+# AMI CONFIGURATION
+# ===================================
+
+variable "use_custom_ami" {
+  description = "Use custom AMI instead of golden AMI"
+  type        = bool
+  default     = false
+}
+
+variable "custom_ami_id" {
+  description = "Custom AMI ID (required if use_custom_ami = true)"
+  type        = string
+  default     = ""
+}
+
+# ===================================
+# PANEL HOSTNAME
+# ===================================
+
+variable "panel_hostname" {
+  description = "Custom panel hostname (e.g., panel.example.com)"
+  type        = string
+  default     = ""
+}
+
+# ===================================
+# TAGS
+# ===================================
 
 variable "tags" {
-  description = "Additional tags"
+  description = "Additional tags for all resources"
   type        = map(string)
   default     = {}
 }
