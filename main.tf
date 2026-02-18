@@ -139,7 +139,8 @@ module "route53" {
   enable_custom_nameservers = var.enable_custom_nameservers
   ns1_ip                    = var.ns1_ip
   ns2_ip                    = var.ns2_ip
-  alarm_actions             = var.sns_topic_arn
+  
+  alarm_actions             = var.sns_topic_arn != "" ? [var.sns_topic_arn] : []
 
   tags = {
     Customer = var.customer_id
