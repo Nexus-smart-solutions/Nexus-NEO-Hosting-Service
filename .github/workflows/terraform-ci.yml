@@ -16,7 +16,7 @@ jobs:
     name: 'Terraform Validate'
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # مهم عشان نقدر نعمل push
+      contents: write
       pull-requests: write
       
     steps:
@@ -25,75 +25,48 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       
+      - name: Debug - Show directory structure
+        run: |
+          echo "Current directory: $(pwd)"
+          echo ""
+          echo "Listing root directory:"
+          ls -la
+          echo ""
+          echo "Listing modules directory:"
+          ls -la modules/ || echo "❌ modules directory not found!"
+          echo ""
+          echo "Listing monitoring module directory:"
+          ls -la modules/monitoring/ || echo "❌ monitoring module not found!"
+          echo ""
+          echo "Git status:"
+          git status
+          echo ""
+          echo "Git tracked files in modules:"
+          git ls-files modules/
+      
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
       
-      # ================================================================
-      # Terraform Format (Check only - won't fail on format issues)
-      # ================================================================
-      - name: Terraform Format (Check)
+      - name: Terraform Format
         id: fmt
         run: terraform fmt -recursive -check
         continue-on-error: true
 
-      # ================================================================
-      # Auto-fix formatting if needed
-      # ================================================================
       - name: Auto-fix Terraform formatting
         if: steps.fmt.outcome == 'failure'
         run: |
           echo "🔄 Fixing Terraform formatting automatically..."
           terraform fmt -recursive
-          
-          # Show what changed
-          echo "📝 Changes made:"
-          git diff
-          
-          # Configure git for commit
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Commit and push changes
           git add .
           git commit -m "style: auto-format Terraform files [skip ci]" || echo "Nothing to commit"
-          git pull --rebase origin ${{ github.ref_name }}
           git push
-          
-          echo "✅ Formatting fixed and committed!"
-
-      # ================================================================
-      # Final format check (optional)
-      # ================================================================
-      - name: Verify formatting
-        if: steps.fmt.outcome == 'failure'
-        run: |
-          echo "⚠️ Formatting was fixed automatically."
-          echo "Run this command locally to sync the changes:"
-          echo "  git pull"
       
-      # ================================================================
-      # Terraform Init (WITHOUT backend for CI)
-      # ================================================================
       - name: Terraform Init
         run: terraform init -backend=false
       
-      # ================================================================
-      # Terraform Validate
-      # ================================================================
       - name: Terraform Validate
         run: terraform validate
-      
-      # ================================================================
-      # Success Message
-      # ================================================================
-      - name: Success
-        run: |
-          echo "✅ All checks passed!"
-          if [[ "${{ steps.fmt.outcome }}" == "failure" ]]; then
-            echo "- Formatting: Fixed automatically ✅"
-          else
-            echo "- Formatting: OK ✅"
-          fi
-          echo "- Validation: OK ✅"
