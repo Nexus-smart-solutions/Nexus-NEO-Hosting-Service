@@ -179,31 +179,26 @@ module "route53" {
 }
 
 # ===================================
-# MONITORING (Optional)
+# MONITORING MODULE
 # ===================================
 
 module "monitoring" {
-  count  = var.enable_enhanced_monitoring ? 1 : 0
   source = "./modules/monitoring"
-
-  customer_id = var.customer_id
-  instance_id = module.panel_server.instance_id
-  environment = var.environment
-
-  # SNS Topic for Alerts
-  sns_topic_arn = var.sns_topic_arn
-
-  # Dashboard
+  
+  customer_id   = var.customer_id
+  instance_id   = module.panel_server.instance_id
+  environment   = var.environment
+  sns_topic_arn = var.sns_topic_arn  
+  
   create_dashboard = var.create_dashboard
-
+  
   tags = {
     Customer = var.customer_id
     Domain   = var.customer_domain
   }
-
+  
   depends_on = [module.panel_server]
 }
-
 # ===================================
 # OUTPUTS
 # ===================================
