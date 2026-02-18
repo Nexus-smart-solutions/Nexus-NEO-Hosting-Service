@@ -30,6 +30,7 @@ output "subnet_ids" {
 output "security_group_id" {
   description = "Security Group ID"
   value       = module.security.security_group_id
+}
 
 output "route53_zone_id" {
   description = "Route53 Hosted Zone ID"
