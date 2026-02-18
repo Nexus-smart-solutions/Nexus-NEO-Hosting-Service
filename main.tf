@@ -52,7 +52,7 @@ module "network" {
 }
 
 # ===================================
-# SECURITY MODULE
+# SECURITY MODULE - تم التعديل هنا
 # ===================================
 
 module "security" {
@@ -60,9 +60,11 @@ module "security" {
 
   vpc_id          = module.network.vpc_id
   customer_domain = var.customer_domain
-  admin_cidrs     = var.admin_cidrs
   environment     = var.environment
-  panel_type      = var.control_panel
+  
+  # ✅ تم التعديل: استخدام المتغيرات الصحيحة
+  allowed_ssh_cidrs   = var.admin_cidrs
+  allowed_admin_cidrs = var.admin_cidrs
 
   tags = {
     Customer = var.customer_id
@@ -71,6 +73,10 @@ module "security" {
 
   depends_on = [module.network]
 }
+
+# ===================================
+# PANEL SERVER MODULE
+# ===================================
 
 module "panel_server" {
   source = "./modules/panel-server"
@@ -144,11 +150,11 @@ module "route53" {
 }
 
 # ===================================
-# MONITORING MODULE - WITH CI/CD FIX
+# MONITORING MODULE
 # ===================================
 
 module "monitoring" {
-  source = "./modules/monitoring"  # مسار ثابت
+  source = "./modules/monitoring"
   
   customer_id      = var.customer_id
   customer_domain  = var.customer_domain
