@@ -184,19 +184,19 @@ module "route53" {
 
 module "monitoring" {
   source = "./modules/monitoring"
-  
+
   customer_id   = var.customer_id
   instance_id   = module.panel_server.instance_id
   environment   = var.environment
-  sns_topic_arn = var.sns_topic_arn  
-  
+  sns_topic_arn = var.sns_topic_arn
+
   create_dashboard = var.create_dashboard
-  
+
   tags = {
     Customer = var.customer_id
     Domain   = var.customer_domain
   }
-  
+
   depends_on = [module.panel_server]
 }
 # ===================================
