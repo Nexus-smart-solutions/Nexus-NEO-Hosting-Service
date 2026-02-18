@@ -15,10 +15,15 @@ jobs:
   terraform:
     name: 'Terraform Validate'
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: write  # مهم عشان نقدر نعمل push
+      pull-requests: write
+      
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -26,23 +31,46 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
       
       # ================================================================
-      # AUTO-FIX: Format issues automatically
+      # Terraform Format (Check only - won't fail on format issues)
       # ================================================================
-      - name: Terraform Format (Auto-fix)
+      - name: Terraform Format (Check)
+        id: fmt
+        run: terraform fmt -recursive -check
+        continue-on-error: true
+
+      # ================================================================
+      # Auto-fix formatting if needed
+      # ================================================================
+      - name: Auto-fix Terraform formatting
+        if: steps.fmt.outcome == 'failure'
         run: |
-          echo "Formatting Terraform files..."
+          echo "🔄 Fixing Terraform formatting automatically..."
           terraform fmt -recursive
           
-          # Check if any files were changed
-          if [[ -n $(git status --porcelain) ]]; then
-            echo "⚠️ Formatting changes detected!"
-            git diff
-            echo ""
-            echo "Run 'terraform fmt -recursive' locally and commit the changes."
-            exit 1
-          else
-            echo "✓ All files properly formatted"
-          fi
+          # Show what changed
+          echo "📝 Changes made:"
+          git diff
+          
+          # Configure git for commit
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Commit and push changes
+          git add .
+          git commit -m "style: auto-format Terraform files [skip ci]" || echo "Nothing to commit"
+          git push
+          
+          echo "✅ Formatting fixed and committed!"
+
+      # ================================================================
+      # Final format check (optional)
+      # ================================================================
+      - name: Verify formatting
+        if: steps.fmt.outcome == 'failure'
+        run: |
+          echo "⚠️ Formatting was fixed automatically."
+          echo "Run this command locally to sync the changes:"
+          echo "  git pull"
       
       # ================================================================
       # Terraform Init (WITHOUT backend for CI)
@@ -62,5 +90,9 @@ jobs:
       - name: Success
         run: |
           echo "✅ All checks passed!"
-          echo "- Formatting: OK"
-          echo "- Validation: OK"
+          if [[ "${{ steps.fmt.outcome }}" == "failure" ]]; then
+            echo "- Formatting: Fixed automatically ✅"
+          else
+            echo "- Formatting: OK ✅"
+          fi
+          echo "- Validation: OK ✅"
