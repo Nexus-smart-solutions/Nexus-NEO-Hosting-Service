@@ -139,28 +139,27 @@ module "route53" {
 # ===================================
 
 module "monitoring" {
-  # Use different sources based on environment
-  source = var.ci_cd ? "/home/runner/work/Nexus-NEO-Hosting-Service/Nexus-NEO-Hosting-Service/modules/monitoring" : "./modules/monitoring"
-
-  customer_id                  = var.customer_id
-  customer_domain              = var.customer_domain
-  instance_id                  = module.panel_server.instance_id
-  environment                  = var.environment
-  sns_topic_arn                = var.sns_topic_arn
-  alert_email                  = var.alert_email != "" ? var.alert_email : "dev@nexus-dxb.com"
-  slack_webhook                = var.slack_webhook
-  cpu_high_threshold           = var.cpu_high_threshold
-  disk_threshold               = var.disk_threshold
-  memory_threshold             = var.memory_threshold
-  enable_disk_alarm            = var.enable_disk_alarm
-  enable_memory_alarm          = var.enable_memory_alarm
-  create_dashboard             = var.create_dashboard
+  source = "./modules/monitoring"  # مسار ثابت
+  
+  customer_id      = var.customer_id
+  customer_domain  = var.customer_domain
+  instance_id      = module.panel_server.instance_id
+  environment      = var.environment
+  sns_topic_arn    = var.sns_topic_arn
+  alert_email      = var.alert_email != "" ? var.alert_email : "dev@nexus-dxb.com"
+  slack_webhook    = var.slack_webhook
+  cpu_high_threshold      = var.cpu_high_threshold
+  disk_threshold          = var.disk_threshold
+  memory_threshold        = var.memory_threshold
+  enable_disk_alarm       = var.enable_disk_alarm
+  enable_memory_alarm     = var.enable_memory_alarm
+  create_dashboard        = var.create_dashboard
   create_dashboard_with_python = var.create_dashboard_with_python
-
+  
   tags = {
     Customer = var.customer_id
     Domain   = var.customer_domain
   }
-
+  
   depends_on = [module.panel_server]
 }
