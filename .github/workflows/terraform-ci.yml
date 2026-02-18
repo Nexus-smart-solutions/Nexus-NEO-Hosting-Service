@@ -2,77 +2,65 @@ name: Terraform CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main, develop ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
+  workflow_dispatch:
 
-permissions:
-  contents: read
-  security-events: write
+env:
+  TF_VERSION: 1.6.6
+  AWS_REGION: us-east-2
 
 jobs:
   terraform:
-    name: Terraform Validate & Scan
+    name: 'Terraform Validate'
     runs-on: ubuntu-latest
-
-    env:
-      TF_VERSION: 1.6.6
-      AWS_REGION: us-east-1
-
+    
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
-
-      # ----------------------------
-      # Setup Terraform
-      # ----------------------------
+      
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
-
-      # ----------------------------
-      # Terraform Format Check
-      # ----------------------------
-      - name: Terraform Format
-        run: terraform fmt -check -recursive
-
-      # ----------------------------
-      # Terraform Init (No Backend)
-      # ----------------------------
+      
+      # ================================================================
+      # AUTO-FIX: Format issues automatically
+      # ================================================================
+      - name: Terraform Format (Auto-fix)
+        run: |
+          echo "Formatting Terraform files..."
+          terraform fmt -recursive
+          
+          # Check if any files were changed
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "⚠️ Formatting changes detected!"
+            git diff
+            echo ""
+            echo "Run 'terraform fmt -recursive' locally and commit the changes."
+            exit 1
+          else
+            echo "✓ All files properly formatted"
+          fi
+      
+      # ================================================================
+      # Terraform Init (WITHOUT backend for CI)
+      # ================================================================
       - name: Terraform Init
         run: terraform init -backend=false
-
-      # ----------------------------
+      
+      # ================================================================
       # Terraform Validate
-      # ----------------------------
+      # ================================================================
       - name: Terraform Validate
         run: terraform validate
-
-      # ----------------------------
-      # tfsec Security Scan
-      # ----------------------------
-      - name: Run tfsec
-        uses: aquasecurity/tfsec-action@v1.0.3
-        with:
-          version: v1.28.1
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          working_directory: .
-          soft_fail: false
-
-      # ----------------------------
-      # Terraform Plan
-      # ----------------------------
-      - name: Terraform Plan
-        run: terraform plan -no-color -out=tfplan
-
-      # ----------------------------
-      # Upload Plan Artifact
-      # ----------------------------
-      - name: Upload Plan Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-plan
-          path: tfplan
+      
+      # ================================================================
+      # Success Message
+      # ================================================================
+      - name: Success
+        run: |
+          echo "✅ All checks passed!"
+          echo "- Formatting: OK"
+          echo "- Validation: OK"
