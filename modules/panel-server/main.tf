@@ -240,6 +240,7 @@ resource "aws_instance" "panel_server" {
   vpc_security_group_ids = [var.security_group_id]
   subnet_id              = var.subnet_id
   iam_instance_profile   = aws_iam_instance_profile.panel_server.name
+  monitoring             = var.enable_detailed_monitoring
 
   # Root Volume
   root_block_device {
@@ -264,8 +265,6 @@ resource "aws_instance" "panel_server" {
     control_panel     = var.control_panel
   })
 
-  monitoring = var.enable_detailed_monitoring
-
   # IMDSv2 required
   metadata_options {
     http_endpoint               = "enabled"
@@ -289,50 +288,8 @@ resource "aws_instance" "panel_server" {
       user_data,
       ami
     ]
-  }
-
-  depends_on = [
-    aws_s3_bucket.backups,
-    aws_iam_instance_profile.panel_server
-  ]
-}
-  # User Data - Install selected control panel
-  user_data = templatefile("${path.module}/user-data/${var.control_panel}.sh.tpl", {
-    domain            = var.customer_domain
-    panel_hostname    = local.panel_hostname
-    backup_bucket     = aws_s3_bucket.backups.bucket
-    region            = data.aws_region.current.name
-    customer_email    = var.customer_email
-    enable_monitoring = var.enable_detailed_monitoring
-    control_panel     = var.control_panel
-  })
-
-  # Enable detailed monitoring if requested
-  monitoring = var.enable_detailed_monitoring
-
-  # IMDSv2 required
-  metadata_options {
-    http_endpoint               = "enabled"
-    http_tokens                 = "required"
-    http_put_response_hop_limit = 1
-  }
-
-  tags = {
-    Name          = "${local.name_prefix}-server"
-    Domain        = var.customer_domain
-    ControlPanel  = var.control_panel
-    Customer      = var.customer_id
-    Environment   = var.environment
-    ManagedBy     = "Terraform"
-    Project       = "Neo-VPS"
-    BillingStatus = "active"
-  }
-
-  lifecycle {
-    ignore_changes = [
-      user_data, # Don't recreate on user_data changes
-      ami        # Don't recreate on AMI updates
-    ]
+    # منع الحذف العرضي (اختياري)
+    # prevent_destroy = true
   }
 
   depends_on = [
