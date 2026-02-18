@@ -58,6 +58,7 @@ jobs:
           # Commit and push changes
           git add .
           git commit -m "style: auto-format Terraform files [skip ci]" || echo "Nothing to commit"
+          git pull --rebase origin ${{ github.ref_name }}
           git push
           
           echo "✅ Formatting fixed and committed!"
