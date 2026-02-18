@@ -95,7 +95,7 @@ resource "aws_cloudwatch_dashboard" "main" {
   count = var.create_dashboard ? 1 : 0
 
   dashboard_name = "neo-vps-${replace(var.customer_domain, ".", "-")}"
-  
+
   dashboard_body = jsonencode({
     widgets = [
       {
