@@ -2,44 +2,23 @@
 # NEO VPS PROVISIONING SYSTEM - VARIABLES
 # ===================================
 
-# ===================================
-# REQUIRED VARIABLES
-# ===================================
-
+# Required Variables
 variable "customer_id" {
   description = "Unique customer identifier"
   type        = string
-
-  validation {
-    condition     = can(regex("^[a-z0-9-]+$", var.customer_id))
-    error_message = "Customer ID must be lowercase alphanumeric with hyphens only"
-  }
 }
 
 variable "customer_domain" {
   description = "Customer domain name"
   type        = string
-
-  validation {
-    condition     = can(regex("^([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}$", var.customer_domain))
-    error_message = "Must be a valid domain name"
-  }
 }
 
 variable "customer_email" {
   description = "Customer email address"
   type        = string
-
-  validation {
-    condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.customer_email))
-    error_message = "Must be a valid email address"
-  }
 }
 
-# ===================================
-# AWS CONFIGURATION
-# ===================================
-
+# AWS Configuration
 variable "aws_region" {
   description = "AWS region"
   type        = string
@@ -47,51 +26,28 @@ variable "aws_region" {
 }
 
 variable "environment" {
-  description = "Environment name (dev, staging, production)"
+  description = "Environment name"
   type        = string
   default     = "production"
-
-  validation {
-    condition     = contains(["dev", "staging", "production"], var.environment)
-    error_message = "Environment must be dev, staging, or production"
-  }
 }
 
-# ===================================
-# SERVER CONFIGURATION
-# ===================================
-
+# Server Configuration
 variable "os_type" {
   description = "Operating system type"
   type        = string
   default     = "almalinux"
-
-  validation {
-    condition     = contains(["almalinux", "ubuntu"], var.os_type)
-    error_message = "OS type must be almalinux or ubuntu"
-  }
 }
 
 variable "os_version" {
-  description = "OS version (e.g., 8, 9, 22.04)"
+  description = "OS version"
   type        = string
   default     = "8"
-
-  validation {
-    condition     = can(regex("^[0-9.]+$", var.os_version))
-    error_message = "OS version must be a valid version number"
-  }
 }
 
 variable "control_panel" {
   description = "Control panel to install"
   type        = string
   default     = "cyberpanel"
-
-  validation {
-    condition     = contains(["cpanel", "cyberpanel", "directadmin", "none"], var.control_panel)
-    error_message = "Control panel must be one of: cpanel, cyberpanel, directadmin, none"
-  }
 }
 
 variable "instance_type" {
@@ -112,10 +68,7 @@ variable "data_volume_size" {
   default     = 100
 }
 
-# ===================================
-# NETWORKING
-# ===================================
-
+# Networking
 variable "vpc_cidr" {
   description = "VPC CIDR block"
   type        = string
@@ -125,13 +78,10 @@ variable "vpc_cidr" {
 variable "admin_cidrs" {
   description = "List of CIDR blocks allowed for admin access"
   type        = list(string)
-  default     = ["0.0.0.0/0"] # Change this in production!
+  default     = ["0.0.0.0/0"]
 }
 
-# ===================================
-# KEY PAIR CONFIGURATION
-# ===================================
-
+# Key Pair
 variable "create_key_pair" {
   description = "Create a new key pair"
   type        = bool
@@ -139,31 +89,25 @@ variable "create_key_pair" {
 }
 
 variable "public_key" {
-  description = "Public key material (required if create_key_pair = true)"
+  description = "Public key material"
   type        = string
   default     = ""
 }
 
 variable "existing_key_pair" {
-  description = "Name of existing key pair (required if create_key_pair = false)"
+  description = "Name of existing key pair"
   type        = string
   default     = ""
 }
 
-# ===================================
-# BACKUP CONFIGURATION
-# ===================================
-
+# Backup
 variable "backup_retention_days" {
-  description = "Number of days to retain backups in S3"
+  description = "Number of days to retain backups"
   type        = number
   default     = 30
 }
 
-# ===================================
-# FEATURE FLAGS
-# ===================================
-
+# Feature Flags
 variable "enable_detailed_monitoring" {
   description = "Enable detailed CloudWatch monitoring"
   type        = bool
@@ -224,10 +168,53 @@ variable "ns2_ip" {
   default     = ""
 }
 
-variable "enable_enhanced_monitoring" {
-  description = "Enable enhanced monitoring with dashboards"
+# Monitoring Variables
+variable "sns_topic_arn" {
+  description = "SNS topic ARN for alarms"
+  type        = string
+  default     = ""
+}
+
+variable "alert_email" {
+  description = "Email for alerts"
+  type        = string
+  default     = "dev@nexus-dxb.com"
+}
+
+variable "slack_webhook" {
+  description = "Slack webhook URL"
+  type        = string
+  default     = ""
+}
+
+variable "cpu_high_threshold" {
+  description = "CPU threshold percentage"
+  type        = number
+  default     = 75
+}
+
+variable "disk_threshold" {
+  description = "Disk usage threshold percentage"
+  type        = number
+  default     = 80
+}
+
+variable "memory_threshold" {
+  description = "Memory usage threshold percentage"
+  type        = number
+  default     = 90
+}
+
+variable "enable_disk_alarm" {
+  description = "Enable disk usage alarm"
   type        = bool
-  default     = false
+  default     = true
+}
+
+variable "enable_memory_alarm" {
+  description = "Enable memory usage alarm"
+  type        = bool
+  default     = true
 }
 
 variable "create_dashboard" {
@@ -236,44 +223,22 @@ variable "create_dashboard" {
   default     = false
 }
 
-variable "sns_topic_arn" {
-  description = "SNS topic ARN for alarms"
-  type        = string
-  default     = ""
-}
-
-# ===================================
-# AMI CONFIGURATION
-# ===================================
-
-variable "use_custom_ami" {
-  description = "Use custom AMI instead of golden AMI"
+variable "create_dashboard_with_python" {
+  description = "Create dashboard using Python script"
   type        = bool
   default     = false
 }
 
-variable "custom_ami_id" {
-  description = "Custom AMI ID (required if use_custom_ami = true)"
-  type        = string
-  default     = ""
+# CI/CD Variable
+variable "ci_cd" {
+  description = "Running in CI/CD environment"
+  type        = bool
+  default     = false
 }
 
-# ===================================
-# PANEL HOSTNAME
-# ===================================
-
-variable "panel_hostname" {
-  description = "Custom panel hostname (e.g., panel.example.com)"
-  type        = string
-  default     = ""
-}
-
-# ===================================
-# TAGS
-# ===================================
-
+# Tags
 variable "tags" {
-  description = "Additional tags for all resources"
+  description = "Additional tags"
   type        = map(string)
   default     = {}
 }
