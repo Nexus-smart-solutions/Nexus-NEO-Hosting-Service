@@ -1,9 +1,6 @@
-# ================================================================
-# NEO VPS - Outputs
-# ================================================================
-# ================================================================
-# Customer Summary
-# ================================================================
+# ===================================
+# OUTPUTS
+# ===================================
 
 output "instance_id" {
   description = "ID of the panel server instance"
@@ -48,4 +45,9 @@ output "sns_topic_arn" {
 output "dashboard_url" {
   description = "CloudWatch dashboard URL"
   value       = module.monitoring.dashboard_url
+}
+
+output "alarm_names" {
+  description = "Names of created alarms"
+  value       = module.monitoring.alarm_names
 }
