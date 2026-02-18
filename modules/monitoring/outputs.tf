@@ -31,6 +31,6 @@ output "alarm_count" {
   value = length(compact([
     aws_cloudwatch_metric_alarm.cpu_high.alarm_name,
     var.enable_disk_alarm ? try(aws_cloudwatch_metric_alarm.disk_high[0].alarm_name, "") : "",
-    var.enable_memory_alarm ? try(aws_cloudwatch_metric_alarm.memory_high[0].alarm_name, "")
+    var.enable_memory_alarm ? try(aws_cloudwatch_metric_alarm.memory_high[0].alarm_name, "") : ""
   ]))
 }
