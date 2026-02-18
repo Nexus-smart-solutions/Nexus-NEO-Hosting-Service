@@ -4,7 +4,11 @@
 
 output "sns_topic_arn" {
   description = "SNS topic ARN for alarms"
-  value       = var.sns_topic_arn != "" ? var.sns_topic_arn : (var.sns_topic_arn == "" && var.alert_email != "" ? aws_sns_topic.alerts[0].arn : null)
+  value       = var.sns_topic_arn != "" ? var.sns_topic_arn : (
+    var.sns_topic_arn == "" && var.alert_email != "" ?
+    aws_sns_topic.alerts[0].arn :
+    null
+  )
 }
 
 output "dashboard_name" {
@@ -14,7 +18,9 @@ output "dashboard_name" {
 
 output "dashboard_url" {
   description = "CloudWatch dashboard URL"
-  value       = var.create_dashboard ? "https://console.aws.amazon.com/cloudwatch/home?region=${data.aws_region.current.name}#dashboards:name=${aws_cloudwatch_dashboard.main[0].dashboard_name}" : null
+  value = var.create_dashboard ? 
+    "https://console.aws.amazon.com/cloudwatch/home?region=${data.aws_region.current.name}#dashboards:name=${aws_cloudwatch_dashboard.main[0].dashboard_name}" 
+    : null
 }
 
 output "alarm_names" {
