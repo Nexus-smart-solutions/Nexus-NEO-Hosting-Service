@@ -193,6 +193,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups" {
     id     = "delete-old-backups"
     status = "Enabled"
 
+    filter {
+      prefix = ""  # مطلوب لتجنب التحذير
+    }
+
     expiration {
       days = var.backup_retention_days
     }
