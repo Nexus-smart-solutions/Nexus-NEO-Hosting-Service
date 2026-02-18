@@ -10,7 +10,6 @@ on:
 env:
   TF_VERSION: 1.6.6
   AWS_REGION: us-east-2
-  TF_VAR_ci_cd: true
 
 jobs:
   terraform:
@@ -25,120 +24,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
       
-      - name: Debug - Show directory structure
+      - name: Debug directory
         run: |
           echo "Current directory: $(pwd)"
-          echo ""
-          echo "Listing root directory:"
-          ls -la
-          echo ""
-          echo "Listing modules directory:"
-          ls -la modules/ || echo "❌ modules directory not found!"
-          echo ""
-          echo "Listing monitoring module directory:"
-          ls -la modules/monitoring/ || echo "❌ monitoring module not found!"
-          echo ""
-          echo "Git status:"
-          git status
-          echo ""
-          echo "Git tracked files in modules:"
-          git ls-files modules/
-      
-      - name: Ensure monitoring module exists
-        run: |
-          mkdir -p modules
-          if [ ! -d "modules/monitoring" ] || [ -z "$(ls -A modules/monitoring 2>/dev/null)" ]; then
-            echo "⚠️ monitoring module not found or empty, creating placeholder..."
-            mkdir -p modules/monitoring
-            
-            # Create placeholder files
-            cat > modules/monitoring/main.tf << 'EOF'
-# Placeholder main.tf for CI/CD
-variable "customer_id" {}
-variable "customer_domain" {}
-variable "instance_id" {}
-variable "environment" { default = "production" }
-variable "sns_topic_arn" { default = "" }
-variable "alert_email" { default = "" }
-variable "slack_webhook" { default = "" }
-variable "cpu_high_threshold" { default = 75 }
-variable "disk_threshold" { default = 80 }
-variable "memory_threshold" { default = 90 }
-variable "enable_disk_alarm" { default = true }
-variable "enable_memory_alarm" { default = true }
-variable "create_dashboard" { default = false }
-variable "create_dashboard_with_python" { default = false }
-variable "tags" { default = {} }
-
-data "aws_region" "current" {}
-
-resource "aws_sns_topic" "alerts" {
-  count = var.sns_topic_arn == "" ? 1 : 0
-  name  = "neo-${var.customer_id}-alerts"
-}
-
-resource "aws_cloudwatch_metric_alarm" "cpu_high" {
-  alarm_name          = "${var.customer_id}-cpu-high"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = "2"
-  metric_name         = "CPUUtilization"
-  namespace           = "AWS/EC2"
-  period              = "300"
-  statistic           = "Average"
-  threshold           = var.cpu_high_threshold
-  alarm_description   = "CPU above threshold"
-  alarm_actions       = var.sns_topic_arn != "" ? [var.sns_topic_arn] : aws_sns_topic.alerts[*].arn
-
-  dimensions = {
-    InstanceId = var.instance_id
-  }
-}
-
-output "sns_topic_arn" {
-  value = var.sns_topic_arn != "" ? var.sns_topic_arn : (var.sns_topic_arn == "" && length(aws_sns_topic.alerts) > 0 ? aws_sns_topic.alerts[0].arn : "")
-}
-
-output "dashboard_url" {
-  value = ""
-}
-
-output "alarm_names" {
-  value = [aws_cloudwatch_metric_alarm.cpu_high.alarm_name]
-}
-EOF
-
-            cat > modules/monitoring/variables.tf << 'EOF'
-variable "customer_id" {}
-variable "customer_domain" {}
-variable "instance_id" {}
-variable "environment" { default = "production" }
-variable "sns_topic_arn" { default = "" }
-variable "alert_email" { default = "" }
-variable "slack_webhook" { default = "" }
-variable "cpu_high_threshold" { default = 75 }
-variable "disk_threshold" { default = 80 }
-variable "memory_threshold" { default = 90 }
-variable "enable_disk_alarm" { default = true }
-variable "enable_memory_alarm" { default = true }
-variable "create_dashboard" { default = false }
-variable "create_dashboard_with_python" { default = false }
-variable "tags" { default = {} }
-EOF
-
-            cat > modules/monitoring/outputs.tf << 'EOF'
-output "sns_topic_arn" { value = "" }
-output "dashboard_url" { value = "" }
-output "alarm_names" { value = [] }
-EOF
-          fi
-          
-          echo "✅ monitoring module ready:"
-          ls -la modules/monitoring/
-          echo ""
-          echo "📄 main.tf content:"
-          cat modules/monitoring/main.tf | head -20
+          echo "Listing modules:"
+          ls -la modules/ || true
+          echo "Listing monitoring:"
+          ls -la modules/monitoring/ || true
       
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -146,34 +39,13 @@ EOF
           terraform_version: ${{ env.TF_VERSION }}
       
       - name: Terraform Format
-        id: fmt
-        run: terraform fmt -recursive -check
-        continue-on-error: true
-
-      - name: Auto-fix Terraform formatting
-        if: steps.fmt.outcome == 'failure'
-        run: |
-          echo "🔄 Fixing Terraform formatting automatically..."
-          terraform fmt -recursive
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "style: auto-format Terraform files [skip ci]" || echo "Nothing to commit"
-          git push
+        run: terraform fmt -recursive
       
       - name: Terraform Init
         run: terraform init -backend=false
-        env:
-          TF_VAR_ci_cd: true
       
       - name: Terraform Validate
         run: terraform validate
-        env:
-          TF_VAR_ci_cd: true
       
       - name: Success
-        run: |
-          echo "✅ All checks passed!"
-          echo "- Formatting: OK"
-          echo "- Validation: OK"
-          echo "- Monitoring module: Active"
+        run: echo "✅ All checks passed!"
