@@ -232,18 +232,6 @@ resource "aws_key_pair" "panel_server" {
 # ===================================
 # EC2 INSTANCE
 # ===================================
-metadata_options {
-  http_tokens = "required"
-}
-
-root_block_device {
-  encrypted = true
-}
-
-lifecycle {
-  prevent_destroy = true # يمنع حذف الـ instance بالغلط
-}
-
 resource "aws_instance" "panel_server" {
   ami           = local.ami_id
   instance_type = var.instance_type
@@ -265,6 +253,49 @@ resource "aws_instance" "panel_server" {
     }
   }
 
+  # User Data
+  user_data = templatefile("${path.module}/user-data/${var.control_panel}.sh.tpl", {
+    domain            = var.customer_domain
+    panel_hostname    = local.panel_hostname
+    backup_bucket     = aws_s3_bucket.backups.bucket
+    region            = data.aws_region.current.name
+    customer_email    = var.customer_email
+    enable_monitoring = var.enable_detailed_monitoring
+    control_panel     = var.control_panel
+  })
+
+  monitoring = var.enable_detailed_monitoring
+
+  # IMDSv2 required
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+  }
+
+  tags = {
+    Name          = "${local.name_prefix}-server"
+    Domain        = var.customer_domain
+    ControlPanel  = var.control_panel
+    Customer      = var.customer_id
+    Environment   = var.environment
+    ManagedBy     = "Terraform"
+    Project       = "Neo-VPS"
+    BillingStatus = "active"
+  }
+
+  lifecycle {
+    ignore_changes = [
+      user_data,
+      ami
+    ]
+  }
+
+  depends_on = [
+    aws_s3_bucket.backups,
+    aws_iam_instance_profile.panel_server
+  ]
+}
   # User Data - Install selected control panel
   user_data = templatefile("${path.module}/user-data/${var.control_panel}.sh.tpl", {
     domain            = var.customer_domain
