@@ -1,8 +1,7 @@
 # ================================================================
-# TERRAFORM BACKEND INFRASTRUCTURE
+# BACKEND INFRASTRUCTURE
 # ================================================================
-# S3 Buckets for State Management & DR
-# DynamoDB for State Locking
+# S3 bucket for Terraform state + DynamoDB for locking
 # ================================================================
 
 terraform {
@@ -13,59 +12,30 @@ terraform {
       version = "~> 5.0"
     }
   }
-  
-  # This backend module uses local state
-  backend "local" {
-    path = "terraform.tfstate"
-  }
-}
-
-# ================================================================
-# PROVIDERS
-# ================================================================
-
-provider "aws" {
-  region = var.primary_region
-  
-  default_tags {
-    tags = {
-      Project     = var.project_name
-      ManagedBy   = "Terraform"
-      Environment = "production"
-      Purpose     = "backend-infrastructure"
-    }
-  }
 }
 
 provider "aws" {
-  alias  = "dr"
-  region = var.dr_region
+  region = var.aws_region
   
   default_tags {
     tags = {
-      Project     = var.project_name
-      ManagedBy   = "Terraform"
-      Environment = "production"
-      Purpose     = "disaster-recovery"
+      Project   = "Neo-VPS"
+      ManagedBy = "Terraform"
+      Environment = var.environment
     }
   }
 }
 
 # ================================================================
-# PRIMARY S3 BUCKET (Ohio)
+# S3 BUCKET - Terraform State
 # ================================================================
 
 resource "aws_s3_bucket" "terraform_state" {
   bucket = var.state_bucket_name
   
-  lifecycle {
-    prevent_destroy = true
-  }
-  
   tags = {
-    Name       = "Terraform State Storage"
-    Region     = var.primary_region
-    RegionName = "Ohio"
+    Name = "neo-terraform-state"
+    Purpose = "terraform-state"
   }
 }
 
@@ -96,102 +66,8 @@ resource "aws_s3_bucket_public_access_block" "terraform_state" {
   restrict_public_buckets = true
 }
 
-resource "aws_s3_bucket_lifecycle_configuration" "terraform_state" {
-  bucket = aws_s3_bucket.terraform_state.id
-  
-  rule {
-    id     = "delete-old-versions"
-    status = "Enabled"
-    
-    noncurrent_version_expiration {
-      noncurrent_days = 90
-    }
-  }
-  
-  rule {
-    id     = "abort-incomplete-multipart"
-    status = "Enabled"
-    
-    abort_incomplete_multipart_upload {
-      days_after_initiation = 7
-    }
-  }
-}
-
 # ================================================================
-# DR S3 BUCKET (N. Virginia)
-# ================================================================
-
-resource "aws_s3_bucket" "terraform_state_dr" {
-  provider = aws.dr
-  bucket   = var.dr_bucket_name
-  
-  tags = {
-    Name       = "Terraform State DR Backup"
-    Region     = var.dr_region
-    RegionName = "N-Virginia"
-  }
-}
-
-resource "aws_s3_bucket_versioning" "terraform_state_dr" {
-  provider = aws.dr
-  bucket   = aws_s3_bucket.terraform_state_dr.id
-  
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state_dr" {
-  provider = aws.dr
-  bucket   = aws_s3_bucket.terraform_state_dr.id
-  
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "terraform_state_dr" {
-  provider = aws.dr
-  bucket   = aws_s3_bucket.terraform_state_dr.id
-  
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_lifecycle_configuration" "terraform_state_dr" {
-  provider = aws.dr
-  bucket   = aws_s3_bucket.terraform_state_dr.id
-  
-  rule {
-    id     = "delete-old-backups"
-    status = "Enabled"
-    
-    filter {
-      prefix = "backup-"
-    }
-    
-    expiration {
-      days = 30
-    }
-  }
-  
-  rule {
-    id     = "delete-old-versions"
-    status = "Enabled"
-    
-    noncurrent_version_expiration {
-      noncurrent_days = 30
-    }
-  }
-}
-
-# ================================================================
-# DYNAMODB TABLE (State Locking)
+# DYNAMODB TABLE - State Locking
 # ================================================================
 
 resource "aws_dynamodb_table" "terraform_locks" {
@@ -204,16 +80,32 @@ resource "aws_dynamodb_table" "terraform_locks" {
     type = "S"
   }
   
-  point_in_time_recovery {
-    enabled = true
-  }
-  
-  server_side_encryption {
-    enabled = true
-  }
-  
   tags = {
-    Name   = "Terraform State Locks"
-    Region = var.primary_region
+    Name = "neo-terraform-locks"
+    Purpose = "terraform-state-lock"
   }
+}
+
+# ================================================================
+# OUTPUTS
+# ================================================================
+
+output "state_bucket_id" {
+  description = "S3 bucket ID for Terraform state"
+  value       = aws_s3_bucket.terraform_state.id
+}
+
+output "state_bucket_arn" {
+  description = "S3 bucket ARN for Terraform state"
+  value       = aws_s3_bucket.terraform_state.arn
+}
+
+output "lock_table_id" {
+  description = "DynamoDB table ID for state locking"
+  value       = aws_dynamodb_table.terraform_locks.id
+}
+
+output "lock_table_arn" {
+  description = "DynamoDB table ARN for state locking"
+  value       = aws_dynamodb_table.terraform_locks.arn
 }
