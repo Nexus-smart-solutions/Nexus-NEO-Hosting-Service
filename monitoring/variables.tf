@@ -2,7 +2,6 @@
 # MONITORING MODULE - VARIABLES
 # ===================================
 
-# Required Variables
 variable "customer_id" {
   description = "Unique customer identifier"
   type        = string
@@ -18,7 +17,6 @@ variable "instance_id" {
   type        = string
 }
 
-# Optional Variables
 variable "environment" {
   description = "Environment name"
   type        = string
@@ -26,24 +24,23 @@ variable "environment" {
 }
 
 variable "sns_topic_arn" {
-  description = "Existing SNS topic ARN (leave empty to create new)"
+  description = "Existing SNS topic ARN"
   type        = string
   default     = ""
 }
 
 variable "alert_email" {
-  description = "Email for alerts (required if creating new SNS topic)"
-  type        = string
-  default     = "dev@nexus-dxb.com"
-}
-
-variable "slack_webhook" {
-  description = "Slack webhook URL for alerts"
+  description = "Email for alerts"
   type        = string
   default     = ""
 }
 
-# Alarm Thresholds
+variable "slack_webhook" {
+  description = "Slack webhook URL"
+  type        = string
+  default     = ""
+}
+
 variable "cpu_high_threshold" {
   description = "CPU threshold percentage"
   type        = number
@@ -62,19 +59,6 @@ variable "memory_threshold" {
   default     = 90
 }
 
-variable "alarm_period" {
-  description = "Alarm evaluation period in seconds"
-  type        = number
-  default     = 300
-}
-
-variable "cpu_alarm_evaluation_periods" {
-  description = "Number of evaluation periods for CPU alarm"
-  type        = number
-  default     = 2
-}
-
-# Feature Flags
 variable "enable_disk_alarm" {
   description = "Enable disk usage alarm"
   type        = bool
@@ -100,7 +84,7 @@ variable "create_dashboard_with_python" {
 }
 
 variable "tags" {
-  description = "Additional tags for all resources"
+  description = "Additional tags"
   type        = map(string)
   default     = {}
 }
