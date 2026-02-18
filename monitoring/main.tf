@@ -26,11 +26,11 @@ locals {
   resource_prefix = "neo-${var.customer_id}"
   dashboard_name  = "neo-vps-${replace(var.customer_domain, ".", "-")}"
   common_tags = merge(var.tags, {
-    Customer   = var.customer_id
-    Domain     = var.customer_domain
+    Customer    = var.customer_id
+    Domain      = var.customer_domain
     Environment = var.environment
-    ManagedBy  = "Terraform"
-    Project    = "Neo-VPS"
+    ManagedBy   = "Terraform"
+    Project     = "Neo-VPS"
   })
 }
 
@@ -40,17 +40,17 @@ locals {
 
 # CPU Utilization Alarm
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
-  alarm_name          = "${local.resource_prefix}-cpu-high"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = var.cpu_alarm_evaluation_periods
-  metric_name         = "CPUUtilization"
-  namespace           = "AWS/EC2"
-  period              = var.alarm_period
-  statistic           = "Average"
-  threshold           = var.cpu_high_threshold
-  alarm_description   = "CPU utilization exceeds ${var.cpu_high_threshold}%"
-  alarm_actions       = local.alarm_actions
-  ok_actions          = local.alarm_actions
+  alarm_name                = "${local.resource_prefix}-cpu-high"
+  comparison_operator       = "GreaterThanThreshold"
+  evaluation_periods        = var.cpu_alarm_evaluation_periods
+  metric_name               = "CPUUtilization"
+  namespace                 = "AWS/EC2"
+  period                    = var.alarm_period
+  statistic                 = "Average"
+  threshold                 = var.cpu_high_threshold
+  alarm_description         = "CPU utilization exceeds ${var.cpu_high_threshold}%"
+  alarm_actions             = local.alarm_actions
+  ok_actions                = local.alarm_actions
   insufficient_data_actions = local.alarm_actions
 
   dimensions = {
@@ -144,7 +144,7 @@ locals {
 
 resource "aws_sns_topic" "alerts" {
   count = var.sns_topic_arn == "" ? 1 : 0
-  
+
   name = "${local.resource_prefix}-alerts"
 
   tags = merge(local.common_tags, {
@@ -154,7 +154,7 @@ resource "aws_sns_topic" "alerts" {
 
 resource "aws_sns_topic_subscription" "email" {
   count = (var.sns_topic_arn == "" && var.alert_email != "") ? 1 : 0
-  
+
   topic_arn = aws_sns_topic.alerts[0].arn
   protocol  = "email"
   endpoint  = var.alert_email
@@ -162,7 +162,7 @@ resource "aws_sns_topic_subscription" "email" {
 
 resource "aws_sns_topic_subscription" "slack" {
   count = (var.sns_topic_arn == "" && var.slack_webhook != "") ? 1 : 0
-  
+
   topic_arn = aws_sns_topic.alerts[0].arn
   protocol  = "https"
   endpoint  = var.slack_webhook
@@ -186,14 +186,14 @@ resource "aws_cloudwatch_dashboard" "main" {
             ["AWS/EC2", "CPUUtilization", { stat = "Average", label = "CPU Usage" }],
             [".", "CPUUtilization", { stat = "Maximum", label = "CPU Max", period = 3600, visible = false }]
           ]
-          view    = "timeSeries"
-          region  = data.aws_region.current.name
-          title   = "CPU Utilization - ${var.customer_domain}"
-          period  = 300
+          view   = "timeSeries"
+          region = data.aws_region.current.name
+          title  = "CPU Utilization - ${var.customer_domain}"
+          period = 300
           yAxis = {
             left = {
-              min = 0
-              max = 100
+              min   = 0
+              max   = 100
               label = "Percent"
             }
           }
@@ -215,8 +215,8 @@ resource "aws_cloudwatch_dashboard" "main" {
           period = 300
           yAxis = {
             left = {
-              min = 0
-              max = 100
+              min   = 0
+              max   = 100
               label = "Percent"
             }
           }
@@ -235,7 +235,7 @@ resource "aws_cloudwatch_dashboard" "main" {
           period = 300
           yAxis = {
             left = {
-              min = 0
+              min   = 0
               label = "Bytes"
             }
           }
@@ -262,7 +262,7 @@ resource "null_resource" "create_dashboard_python" {
   count = var.create_dashboard_with_python ? 1 : 0
 
   provisioner "local-exec" {
-    command = "python3 ${path.module}/create-dashboard.py ${var.customer_domain} ${var.instance_id} ${var.customer_id}"
+    command     = "python3 ${path.module}/create-dashboard.py ${var.customer_domain} ${var.instance_id} ${var.customer_id}"
     interpreter = ["/bin/bash", "-c"]
   }
 
