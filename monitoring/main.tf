@@ -117,22 +117,22 @@ resource "aws_cloudwatch_metric_alarm" "memory_high" {
 
 resource "aws_sns_topic" "alerts" {
   count = var.sns_topic_arn == "" ? 1 : 0
-  
+
   name = "neo-${var.customer_id}-alerts"
 
   tags = merge(var.tags, {
-    Name       = "neo-${var.customer_id}-alerts"
-    Customer   = var.customer_id
-    ManagedBy  = "Terraform"
+    Name      = "neo-${var.customer_id}-alerts"
+    Customer  = var.customer_id
+    ManagedBy = "Terraform"
   })
 }
 
 resource "aws_sns_topic_subscription" "email" {
   count = var.sns_topic_arn == "" ? 1 : 0
-  
+
   topic_arn = aws_sns_topic.alerts[0].arn
   protocol  = "email"
-  endpoint  = "dev@nexus-dxb.com"  # غير ده للإيميل بتاعك
+  endpoint  = "dev@nexus-dxb.com" # غير ده للإيميل بتاعك
 }
 
 # ===================================
@@ -141,7 +141,7 @@ resource "aws_sns_topic_subscription" "email" {
 
 output "sns_topic_arn" {
   description = "SNS topic ARN"
-  value = var.sns_topic_arn != "" ? var.sns_topic_arn : aws_sns_topic.alerts[0].arn
+  value       = var.sns_topic_arn != "" ? var.sns_topic_arn : aws_sns_topic.alerts[0].arn
 }
 
 output "alarm_names" {
