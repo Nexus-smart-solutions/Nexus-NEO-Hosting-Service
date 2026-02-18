@@ -9,7 +9,7 @@
 variable "customer_id" {
   description = "Unique customer identifier"
   type        = string
-  
+
   validation {
     condition     = can(regex("^[a-z0-9-]+$", var.customer_id))
     error_message = "Customer ID must be lowercase alphanumeric with hyphens only"
@@ -19,7 +19,7 @@ variable "customer_id" {
 variable "customer_domain" {
   description = "Customer domain name"
   type        = string
-  
+
   validation {
     condition     = can(regex("^([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}$", var.customer_domain))
     error_message = "Must be a valid domain name"
@@ -29,7 +29,7 @@ variable "customer_domain" {
 variable "customer_email" {
   description = "Customer email address"
   type        = string
-  
+
   validation {
     condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.customer_email))
     error_message = "Must be a valid email address"
@@ -50,7 +50,7 @@ variable "environment" {
   description = "Environment name (dev, staging, production)"
   type        = string
   default     = "production"
-  
+
   validation {
     condition     = contains(["dev", "staging", "production"], var.environment)
     error_message = "Environment must be dev, staging, or production"
@@ -65,7 +65,7 @@ variable "os_type" {
   description = "Operating system type"
   type        = string
   default     = "almalinux"
-  
+
   validation {
     condition     = contains(["almalinux", "ubuntu"], var.os_type)
     error_message = "OS type must be almalinux or ubuntu"
@@ -76,7 +76,7 @@ variable "os_version" {
   description = "OS version (e.g., 8, 9, 22.04)"
   type        = string
   default     = "8"
-  
+
   validation {
     condition     = can(regex("^[0-9.]+$", var.os_version))
     error_message = "OS version must be a valid version number"
@@ -87,7 +87,7 @@ variable "control_panel" {
   description = "Control panel to install"
   type        = string
   default     = "cyberpanel"
-  
+
   validation {
     condition     = contains(["cpanel", "cyberpanel", "directadmin", "none"], var.control_panel)
     error_message = "Control panel must be one of: cpanel, cyberpanel, directadmin, none"
@@ -125,7 +125,7 @@ variable "vpc_cidr" {
 variable "admin_cidrs" {
   description = "List of CIDR blocks allowed for admin access"
   type        = list(string)
-  default     = ["0.0.0.0/0"]  # Change this in production!
+  default     = ["0.0.0.0/0"] # Change this in production!
 }
 
 # ===================================
