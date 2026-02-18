@@ -72,37 +72,46 @@ module "security" {
   depends_on = [module.network]
 }
 
-# ===================================
-# PANEL SERVER MODULE
-# ===================================
-
 module "panel_server" {
   source = "./modules/panel-server"
-
-  customer_id                = var.customer_id
-  customer_domain            = var.customer_domain
-  customer_email             = var.customer_email
-  environment                = var.environment
-  os_type                    = var.os_type
-  os_version                 = var.os_version
-  control_panel              = var.control_panel
-  instance_type              = var.instance_type
-  root_volume_size           = var.root_volume_size
-  data_volume_size           = var.data_volume_size
-  subnet_id                  = module.network.public_subnet_ids[0]
-  security_group_id          = module.security.panel_security_group_id
-  create_key_pair            = var.create_key_pair
-  public_key                 = var.public_key
-  existing_key_pair          = var.existing_key_pair
-  backup_retention_days      = var.backup_retention_days
+  
+  customer_id          = var.customer_id
+  customer_domain      = var.customer_domain
+  customer_email       = var.customer_email
+  environment          = var.environment
+  os_type              = var.os_type
+  os_version           = var.os_version
+  control_panel        = var.control_panel
+  instance_type        = var.instance_type
+  root_volume_size     = var.root_volume_size
+  data_volume_size     = var.data_volume_size
+  
+  # Networking
+  vpc_id               = module.network.vpc_id
+  subnet_id            = module.network.public_subnet_ids[0]
+  security_group_id    = module.security.panel_security_group_id
+  
+  # Key Pair Configuration
+  create_key_pair      = var.create_key_pair
+  public_key           = var.public_key
+  existing_key_pair    = var.existing_key_pair
+  
+  # Backup Settings
+  backup_retention_days = var.backup_retention_days
+  
+  # Feature Flags
   enable_detailed_monitoring = var.enable_detailed_monitoring
   enable_cloudwatch_alarms   = var.enable_cloudwatch_alarms
   enable_daily_snapshots     = var.enable_daily_snapshots
   snapshot_retention_days    = var.snapshot_retention_days
   allocate_elastic_ip        = var.allocate_eip
-  use_custom_ami             = var.use_custom_ami
-  custom_ami_id              = var.custom_ami_id
-  panel_hostname             = var.panel_hostname
+  
+  # AMI Options
+  use_custom_ami       = var.use_custom_ami
+  custom_ami_id        = var.custom_ami_id
+  
+  # Panel Hostname
+  panel_hostname       = var.panel_hostname
 
   depends_on = [module.network, module.security]
 }
