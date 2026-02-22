@@ -6,7 +6,7 @@ plan:
   name: "Titan"
   slug: "titan"
   price_monthly: 99
-  price_yearly: 1188    # 25% discount
+  price_yearly: 891    # 25% discount
   
   description: "For mission-critical applications and high-traffic sites."
   
