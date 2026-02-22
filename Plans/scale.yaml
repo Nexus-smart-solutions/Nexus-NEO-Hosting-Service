@@ -5,8 +5,8 @@
 plan:
   name: "Scale"
   slug: "scale"
-  price_monthly: 59
-  price_yearly: 531     # 25% discount
+  price_monthly: 79
+  price_yearly: 790     # 25% discount
   
   description: "For growing businesses and production websites."
   
