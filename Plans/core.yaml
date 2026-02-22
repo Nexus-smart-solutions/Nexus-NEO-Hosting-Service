@@ -1,0 +1,66 @@
+# ================================================================
+# core PLAN CONFIGURATION
+# ================================================================
+
+plan:
+  name: "CORE"
+  slug: "core"
+  price_monthly: 29
+  price_yearly: 290    # 25% discount
+  
+  description: "Perfect for personal websites and small projects."
+  
+  specs:
+    compute:
+      instance_type: "t3.small"
+      vcpu: 2
+      ram_gb: 2
+      
+    storage:
+      root_volume_gb: 30
+      data_volume_gb: 50
+      total_gb: 80
+      iops: 3000
+      throughput_mbps: 125
+      
+    networking:
+      bandwidth_tb: 1
+      elastic_ip: 1
+      
+    database:
+      enabled: false
+      
+    backups:
+      frequency: "daily"
+      retention_days: 7
+      cross_region: false
+  
+  limits:
+    domains: 5
+    databases: 5
+    email_accounts: 10
+    cron_jobs: 20
+    ftp_accounts: 5
+    subdomains: 25
+    
+  features:
+    - "Free SSL Certificates"
+    - "Daily Backups (7 days)"
+    - "1 Control Panel"
+    - "Email Support"
+    - "99.9% Uptime SLA"
+    - "DDoS Protection (core)"
+    
+  restrictions:
+    max_file_size_mb: 100
+    max_upload_size_mb: 50
+    php_memory_limit_mb: 128
+    php_max_execution_time: 300
+    
+  terraform_vars:
+    instance_type: "t3.small"
+    root_volume_size: 30
+    data_volume_size: 50
+    enable_rds: false
+    enable_cloudwatch_detailed: false
+    enable_auto_scaling: false
