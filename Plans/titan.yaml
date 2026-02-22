@@ -1,80 +1,183 @@
 # ================================================================
-# titan PLAN CONFIGURATION
+# TITAN PLAN - Enterprise Package
+# ================================================================
+# Maximum performance for mission-critical applications
 # ================================================================
 
 plan:
+  # Plan Identity
   name: "Titan"
   slug: "titan"
-  price_monthly: 149
-  price_yearly: 1490    # 25% discount
+  tier: 3
   
-  description: "For mission-critical applications and high-traffic sites."
+  # Pricing
+  pricing:
+    monthly: 149
+    yearly: 1490       # Save 25%
+    setup_fee: 0
+    currency: "USD"
   
-  specs:
-    compute:
-      instance_type: "t3.large"
-      vcpu: 8
-      ram_gb: 16
-      
-    storage:
-      root_volume_gb: 100
-      data_volume_gb: 500
-      total_gb: 600
+  # Marketing
+  tagline: "Enterprise-Grade Power"
+  description: "Maximum performance and reliability for mission-critical applications"
+  target_audience: "Enterprise applications, high-traffic platforms, critical systems"
+  enterprise: true
+  
+  # Compute Resources
+  compute:
+    instance_type: "t3.large"
+    vcpu: 8
+    ram_gb: 16
+    architecture: "x86_64"
+    cpu_credits: "unlimited"
+    
+  # Storage
+  storage:
+    root_volume:
+      size_gb: 100
+      type: "gp3"
       iops: 12000
       throughput_mbps: 500
-      
-    networking:
-      bandwidth_tb: 10
-      elastic_ip: 5
-      
-    database:
-      enabled: true
-      instance_class: "db.t3.small"
-      storage_gb: 200
-      backup_retention_days: 35
-      multi_az: true
-      
-    backups:
-      frequency: "hourly"
-      retention_days: 90
-      cross_region: true
-      cross_region_retention_days: 30
-  
+    
+    data_volume:
+      size_gb: 500
+      type: "gp3"
+      iops: 12000
+      throughput_mbps: 500
+    
+    total_gb: 600
+    expandable: true
+    max_expansion_gb: 5000
+    
+  # Networking
+  networking:
+    bandwidth_monthly_tb: 10
+    elastic_ips: 5
+    ipv6_support: true
+    ddos_protection: "enterprise"
+    private_networking: true
+    
+  # Database
+  database:
+    included: true
+    engine: "mysql"  # or "postgresql"
+    version: "8.0"
+    instance_class: "db.t3.small"
+    storage_gb: 200
+    storage_type: "gp3"
+    storage_iops: 3000
+    backup_retention_days: 35
+    multi_az: true
+    auto_minor_version_upgrade: true
+    performance_insights: true
+    enhanced_monitoring: true
+    
+  # Backups
+  backup:
+    frequency: "continuous"
+    retention_days: 90
+    auto_backup: true
+    manual_backup: true
+    cross_region: true
+    cross_region_retention_days: 30
+    point_in_time_recovery: true
+    snapshot_lifecycle: true
+    
+  # Monitoring
+  monitoring:
+    basic_metrics: true
+    detailed_monitoring: true
+    custom_alarms: -1  # unlimited
+    log_retention_days: 90
+    performance_insights: true
+    custom_dashboards: true
+    apm_integration: true
+    
+  # Support
+  support:
+    level: "premium_24x7"
+    response_time_hours: 1
+    business_hours: false  # 24/7
+    priority: "critical"
+    dedicated_channel: true
+    phone_support: true
+    dedicated_engineer: true
+    
+  # SLA
+  sla:
+    uptime_percentage: 99.99
+    downtime_credits: true
+    response_time_guarantee: true
+    performance_guarantee: true
+    
+  # Resource Limits
   limits:
-    domains: -1  # unlimited
+    domains: -1        # unlimited
+    subdomains_per_domain: -1
     databases: -1
     email_accounts: -1
-    cron_jobs: -1
     ftp_accounts: -1
-    subdomains: -1
+    cron_jobs: -1
+    ssl_certificates: -1
     
-  features:
-    - "Everything in Professional"
-    - "Multi-AZ RDS Database"
-    - "Continuous Backups (90 days)"
-    - "24/7 Phone Support"
-    - "Dedicated IP Pool"
-    - "Custom Configurations"
-    - "99.99% Uptime SLA"
-    - "Advanced DDoS Protection"
-    - "WAF Integration Available"
-    - "Priority Provisioning"
-    
-  restrictions:
+  # Application Limits
+  app_limits:
     max_file_size_mb: 2048
     max_upload_size_mb: 1024
     php_memory_limit_mb: 512
-    php_max_execution_time: 1800
+    php_max_execution_time_sec: 1800
+    concurrent_connections: 2000
+    max_processes: 1000
     
-  terraform_vars:
+  # Features Included
+  features:
+    - "Everything in Scale Plan"
+    - "Multi-AZ Database with Auto-Failover"
+    - "Continuous Backups (90 days)"
+    - "Multi-Region Disaster Recovery"
+    - "24/7 Premium Phone Support (1h response)"
+    - "Dedicated Support Engineer"
+    - "Custom Server Configurations"
+    - "99.99% Uptime SLA"
+    - "Enterprise DDoS Protection"
+    - "Private Networking (VPC Peering)"
+    - "Unlimited Resources"
+    - "Auto-Scaling (up to 3 instances)"
+    - "Load Balancer Ready"
+    - "Advanced Security Hardening"
+    - "Compliance Support (HIPAA, PCI-DSS ready)"
+    - "Quarterly Business Reviews"
+    
+  # Premium Features
+  premium_features:
+    - "White-glove onboarding"
+    - "Architecture consultation"
+    - "Custom automation scripts"
+    - "Priority feature requests"
+    - "Early access to new features"
+    
+  # Terraform Variables
+  terraform:
     instance_type: "t3.large"
     root_volume_size: 100
+    root_volume_type: "gp3"
+    root_volume_iops: 12000
     data_volume_size: 500
+    data_volume_type: "gp3"
+    data_volume_iops: 12000
     enable_rds: true
     rds_instance_class: "db.t3.small"
-    rds_storage: 200
+    rds_storage_gb: 200
+    rds_storage_type: "gp3"
     rds_multi_az: true
-    enable_cloudwatch_detailed: true
+    enable_detailed_monitoring: true
     enable_auto_scaling: true
     min_instances: 1
     max_instances: 3
+    backup_retention_days: 90
+    enable_cross_region_backup: true
+    enable_vpc_peering: true
+    
+  # Add-ons Compatible
+  marketplace_compatible:
+    - "*"  # All add-ons compatible
