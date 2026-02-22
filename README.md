@@ -133,6 +133,8 @@ Extend your server with powerful AWS services:
 NEO provisions complete, production-ready infrastructure:
 
 <img width="1536" height="1024" alt="ChatGPT Image Feb 11, 2026, 11_40_12 AM" src="https://github.com/user-attachments/assets/74eadf1c-cb8c-454b-af96-fbc43cec128a" />
+
+
 ┌─────────────────────────────────────────────┐
 │           Customer Infrastructure            │
 ├─────────────────────────────────────────────┤
