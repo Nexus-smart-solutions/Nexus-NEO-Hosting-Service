@@ -1,0 +1,75 @@
+# ================================================================
+# scale PLAN CONFIGURATION
+# ================================================================
+
+plan:
+  name: "Scale"
+  slug: "scale"
+  price_monthly: 59
+  price_yearly: 708     # 25% discount
+  
+  description: "For growing businesses and production websites."
+  
+  specs:
+    compute:
+      instance_type: "t3.medium"
+      vcpu: 4
+      ram_gb: 8
+      
+    storage:
+      root_volume_gb: 50
+      data_volume_gb: 200
+      total_gb: 250
+      iops: 6000
+      throughput_mbps: 250
+      
+    networking:
+      bandwidth_tb: 3
+      elastic_ip: 2
+      
+    database:
+      enabled: true
+      instance_class: "db.t3.micro"
+      storage_gb: 50
+      backup_retention_days: 30
+      multi_az: false
+      
+    backups:
+      frequency: "hourly"
+      retention_days: 30
+      cross_region: true
+      cross_region_retention_days: 14
+  
+  limits:
+    domains: 25
+    databases: 25
+    email_accounts: 50
+    cron_jobs: 100
+    ftp_accounts: 25
+    subdomains: 100
+    
+  features:
+    - "Everything in Basic"
+    - "Managed RDS Database"
+    - "Hourly Backups (30 days)"
+    - "Priority Email Support"
+    - "Advanced Monitoring"
+    - "99.95% Uptime SLA"
+    - "DDoS Protection (Advanced)"
+    - "SSL Wildcard Support"
+    
+  restrictions:
+    max_file_size_mb: 500
+    max_upload_size_mb: 250
+    php_memory_limit_mb: 256
+    php_max_execution_time: 600
+    
+  terraform_vars:
+    instance_type: "t3.medium"
+    root_volume_size: 50
+    data_volume_size: 200
+    enable_rds: true
+    rds_instance_class: "db.t3.micro"
+    rds_storage: 50
+    enable_cloudwatch_detailed: true
+    enable_auto_scaling: false
