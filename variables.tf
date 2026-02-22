@@ -275,3 +275,99 @@ variable "enable_auto_scaling" {
   type        = bool
   default     = false
 }
+
+
+# ===================================
+# MARKETPLACE VARIABLES
+# ===================================
+
+variable "enable_marketplace" {
+  description = "Enable marketplace add-ons"
+  type        = bool
+  default     = false
+}
+
+variable "selected_addons" {
+  description = "List of marketplace add-on IDs to enable"
+  type        = list(string)
+  default     = []
+}
+
+# ===================================
+# PLAN VARIABLES
+# ===================================
+
+variable "selected_plan" {
+  description = "Selected hosting plan (core, scale, titan)"
+  type        = string
+  default     = "core"
+  
+  validation {
+    condition     = contains(["core", "scale", "titan"], var.selected_plan)
+    error_message = "Plan must be core, scale, or titan"
+  }
+}
+
+# ===================================
+# MONITORING VARIABLES (اللي ناقصة)
+# ===================================
+
+variable "sns_topic_arn" {
+  description = "SNS topic ARN for alarms"
+  type        = string
+  default     = ""
+}
+
+variable "alert_email" {
+  description = "Email for alerts"
+  type        = string
+  default     = "admin@example.com"
+}
+
+variable "slack_webhook" {
+  description = "Slack webhook URL"
+  type        = string
+  default     = ""
+}
+
+variable "cpu_high_threshold" {
+  description = "CPU threshold percentage"
+  type        = number
+  default     = 75
+}
+
+variable "disk_threshold" {
+  description = "Disk usage threshold percentage"
+  type        = number
+  default     = 80
+}
+
+variable "memory_threshold" {
+  description = "Memory usage threshold percentage"
+  type        = number
+  default     = 90
+}
+
+variable "enable_disk_alarm" {
+  description = "Enable disk usage alarm"
+  type        = bool
+  default     = true
+}
+
+variable "enable_memory_alarm" {
+  description = "Enable memory usage alarm"
+  type        = bool
+  default     = true
+}
+
+variable "create_dashboard" {
+  description = "Create CloudWatch dashboard"
+  type        = bool
+  default     = false
+}
+
+variable "create_dashboard_with_python" {
+  description = "Create dashboard using Python script"
+  type        = bool
+  default     = false
+}
