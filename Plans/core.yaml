@@ -1,66 +1,149 @@
 # ================================================================
-# core PLAN CONFIGURATION
+# CORE PLAN - Starter Package
+# ================================================================
+# Perfect for personal websites, blogs, and small projects
 # ================================================================
 
 plan:
-  name: "CORE"
+  # Plan Identity
+  name: "Core"
   slug: "core"
-  price_monthly: 39
-  price_yearly: 390    # 25% discount
+  tier: 1
   
-  description: "Perfect for personal websites and small projects."
+  # Pricing
+  pricing:
+    monthly: 39
+    yearly: 390        # Save 25%
+    setup_fee: 0
+    currency: "USD"
   
-  specs:
-    compute:
-      instance_type: "t3.small"
-      vcpu: 2
-      ram_gb: 2
-      
-    storage:
-      root_volume_gb: 30
-      data_volume_gb: 50
-      total_gb: 80
+  # Marketing
+  tagline: "Perfect for Getting Started"
+  description: "Everything you need to launch your first website or application"
+  target_audience: "Personal websites, blogs, portfolios, small business sites"
+  
+  # Compute Resources
+  compute:
+    instance_type: "t3.small"
+    vcpu: 2
+    ram_gb: 2
+    architecture: "x86_64"
+    cpu_credits: "unlimited"
+    
+  # Storage
+  storage:
+    root_volume:
+      size_gb: 30
+      type: "gp3"
       iops: 3000
       throughput_mbps: 125
-      
-    networking:
-      bandwidth_tb: 1
-      elastic_ip: 1
-      
-    database:
-      enabled: false
-      
-    backups:
-      frequency: "daily"
-      retention_days: 7
-      cross_region: false
-  
+    
+    data_volume:
+      size_gb: 50
+      type: "gp3"
+      iops: 3000
+      throughput_mbps: 125
+    
+    total_gb: 80
+    expandable: true
+    max_expansion_gb: 200
+    
+  # Networking
+  networking:
+    bandwidth_monthly_tb: 1
+    elastic_ips: 1
+    ipv6_support: true
+    ddos_protection: "basic"
+    
+  # Database
+  database:
+    included: false
+    upgrade_available: true
+    
+  # Backups
+  backup:
+    frequency: "daily"
+    retention_days: 7
+    auto_backup: true
+    manual_backup: true
+    cross_region: false
+    point_in_time_recovery: false
+    
+  # Monitoring
+  monitoring:
+    basic_metrics: true
+    detailed_monitoring: false
+    custom_alarms: 3
+    log_retention_days: 7
+    
+  # Support
+  support:
+    level: "email"
+    response_time_hours: 24
+    business_hours: true
+    priority: "normal"
+    
+  # SLA
+  sla:
+    uptime_percentage: 99.9
+    downtime_credits: true
+    
+  # Resource Limits
   limits:
     domains: 5
+    subdomains_per_domain: 25
     databases: 5
     email_accounts: 10
-    cron_jobs: 20
     ftp_accounts: 5
-    subdomains: 25
+    cron_jobs: 20
+    ssl_certificates: 5
     
-  features:
-    - "Free SSL Certificates"
-    - "Daily Backups (7 days)"
-    - "1 Control Panel"
-    - "Email Support"
-    - "99.9% Uptime SLA"
-    - "DDoS Protection (core)"
-    
-  restrictions:
+  # Application Limits
+  app_limits:
     max_file_size_mb: 100
     max_upload_size_mb: 50
     php_memory_limit_mb: 128
-    php_max_execution_time: 300
+    php_max_execution_time_sec: 300
+    concurrent_connections: 100
+    max_processes: 50
     
-  terraform_vars:
+  # Features Included
+  features:
+    - "Free SSL Certificates (Let's Encrypt)"
+    - "Daily Automated Backups (7 days)"
+    - "1 Control Panel (cPanel/CyberPanel/DirectAdmin)"
+    - "Email Support (24h response)"
+    - "99.9% Uptime SLA"
+    - "Basic DDoS Protection"
+    - "IPv6 Support"
+    - "SSH/SFTP Access"
+    - "Git Integration"
+    - "Multiple PHP Versions"
+    
+  # Features NOT Included
+  restrictions:
+    - "No managed database (RDS)"
+    - "No priority support"
+    - "No advanced monitoring"
+    - "Limited to 1TB bandwidth"
+    
+  # Terraform Variables
+  terraform:
     instance_type: "t3.small"
     root_volume_size: 30
+    root_volume_type: "gp3"
     data_volume_size: 50
+    data_volume_type: "gp3"
     enable_rds: false
-    enable_cloudwatch_detailed: false
+    enable_detailed_monitoring: false
     enable_auto_scaling: false
+    backup_retention_days: 7
+    
+  # Add-ons Compatible
+  marketplace_compatible:
+    - "storage-ebs-100"
+    - "storage-s3-500"
+    - "security-cloudwatch-basic"
+    - "email-ses"
+    - "perf-ram-upgrade"
+    - "db-upgrade-to-rds"
