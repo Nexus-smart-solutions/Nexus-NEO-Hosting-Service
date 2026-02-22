@@ -5,8 +5,8 @@
 plan:
   name: "CORE"
   slug: "core"
-  price_monthly: 29
-  price_yearly: 261    # 25% discount
+  price_monthly: 39
+  price_yearly: 390    # 25% discount
   
   description: "Perfect for personal websites and small projects."
   
