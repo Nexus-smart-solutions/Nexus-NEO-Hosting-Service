@@ -135,38 +135,6 @@ NEO provisions complete, production-ready infrastructure:
 <img width="1536" height="1024" alt="ChatGPT Image Feb 11, 2026, 11_40_12 AM" src="https://github.com/user-attachments/assets/74eadf1c-cb8c-454b-af96-fbc43cec128a" />
 
 
-┌─────────────────────────────────────────────┐
-│           Customer Infrastructure            │
-├─────────────────────────────────────────────┤
-│                                             │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐ │
-│  │   VPC    │  │  Subnet  │  │    IGW   │ │
-│  └──────────┘  └──────────┘  └──────────┘ │
-│                                             │
-│  ┌──────────────────────────────────────┐  │
-│  │         EC2 Instance                 │  │
-│  │  - Selected OS (AlmaLinux/Ubuntu)   │  │
-│  │  - Control Panel (automated)        │  │
-│  │  - SSL Certificates                 │  │
-│  │  - Daily Backups                    │  │
-│  └──────────────────────────────────────┘  │
-│                                             │
-│  ┌──────────────────────────────────────┐  │
-│  │      RDS Database (Scale/Titan)      │  │
-│  │  - MySQL/PostgreSQL                  │  │
-│  │  - Multi-AZ (Titan)                  │  │
-│  │  - Automated Backups                 │  │
-│  └──────────────────────────────────────┘  │
-│                                             │
-│  ┌──────────────────────────────────────┐  │
-│  │        DNS Infrastructure            │  │
-│  │  - Primary Bind9 Server              │  │
-│  │  - Secondary Bind9 (DR)              │  │
-│  │  - Auto Zone Management              │  │
-│  └──────────────────────────────────────┘  │
-│                                             │
-└─────────────────────────────────────────────┘
-```
 
 ---
 
