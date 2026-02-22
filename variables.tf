@@ -1,13 +1,15 @@
-# ===================================
-# NEO VPS PROVISIONING SYSTEM - VARIABLES
-# ===================================
+# ================================================================
+# NEO VPS SAAS - ROOT VARIABLES
+# ================================================================
+# Complete variable definitions for the NEO platform
+# ================================================================
 
-# ===================================
-# REQUIRED VARIABLES
-# ===================================
+# ================================================================
+# CUSTOMER INFORMATION
+# ================================================================
 
 variable "customer_id" {
-  description = "Unique customer identifier"
+  description = "Unique customer identifier (lowercase alphanumeric with hyphens)"
   type        = string
   
   validation {
@@ -17,17 +19,17 @@ variable "customer_id" {
 }
 
 variable "customer_domain" {
-  description = "Customer domain name"
+  description = "Primary domain name for the customer"
   type        = string
   
   validation {
     condition     = can(regex("^([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}$", var.customer_domain))
-    error_message = "Must be a valid domain name"
+    error_message = "Must be a valid domain name (lowercase)"
   }
 }
 
 variable "customer_email" {
-  description = "Customer email address"
+  description = "Customer primary email address"
   type        = string
   
   validation {
@@ -36,46 +38,57 @@ variable "customer_email" {
   }
 }
 
-# ===================================
-# AWS CONFIGURATION
-# ===================================
+# ================================================================
+# PLAN SELECTION (NEW!)
+# ================================================================
 
-variable "aws_region" {
-  description = "AWS region"
+variable "plan_slug" {
+  description = "Selected plan tier (core, scale, or titan)"
   type        = string
-  default     = "us-east-1"
-}
-
-variable "environment" {
-  description = "Environment name (dev, staging, production)"
-  type        = string
-  default     = "production"
+  default     = "core"
   
   validation {
-    condition     = contains(["dev", "staging", "production"], var.environment)
-    error_message = "Environment must be dev, staging, or production"
+    condition     = contains(["core", "scale", "titan"], var.plan_slug)
+    error_message = "Plan must be one of: core, scale, titan"
   }
 }
 
-# ===================================
+# ================================================================
+# MARKETPLACE ADD-ONS (NEW!)
+# ================================================================
+
+variable "marketplace_addons" {
+  description = "List of marketplace add-on IDs to provision"
+  type        = list(string)
+  default     = []
+  
+  # Example: ["storage-ebs-100", "security-waf", "email-ses"]
+}
+
+# ================================================================
 # SERVER CONFIGURATION
-# ===================================
+# ================================================================
+# Note: These can be overridden by plan enforcement
+# If plan_slug is set, these values come from the plan
+# ================================================================
 
 variable "os_type" {
   description = "Operating system type"
   type        = string
-  default     = "almalinux"
+  default     = "almalinux-8"
   
   validation {
-    condition     = contains(["almalinux", "ubuntu"], var.os_type)
-    error_message = "OS type must be almalinux or ubuntu"
+    condition = contains([
+      "almalinux-8",
+      "almalinux-9",
+      "ubuntu-20.04",
+      "ubuntu-22.04",
+      "ubuntu-24.04",
+      "rocky-8",
+      "rocky-9"
+    ], var.os_type)
+    error_message = "OS type must be one of: almalinux-8, almalinux-9, ubuntu-20.04, ubuntu-22.04, ubuntu-24.04, rocky-8, rocky-9"
   }
-}
-
-variable "os_version" {
-  description = "OS version (e.g., 8, 9, 22.04)"
-  type        = string
-  default     = "8"
 }
 
 variable "control_panel" {
@@ -90,241 +103,138 @@ variable "control_panel" {
 }
 
 variable "instance_type" {
-  description = "EC2 instance type"
+  description = "EC2 instance type (overridden by plan if plan_slug is set)"
   type        = string
-  default     = "t3.medium"
+  default     = "t3.small"
 }
 
 variable "root_volume_size" {
-  description = "Root volume size in GB"
+  description = "Root volume size in GB (overridden by plan if plan_slug is set)"
   type        = number
-  default     = 50
+  default     = 30
+  
+  validation {
+    condition     = var.root_volume_size >= 20 && var.root_volume_size <= 1000
+    error_message = "Root volume size must be between 20 and 1000 GB"
+  }
 }
 
 variable "data_volume_size" {
-  description = "Data volume size in GB"
+  description = "Data volume size in GB (overridden by plan if plan_slug is set)"
   type        = number
-  default     = 100
+  default     = 50
+  
+  validation {
+    condition     = var.data_volume_size >= 20 && var.data_volume_size <= 5000
+    error_message = "Data volume size must be between 20 and 5000 GB"
+  }
 }
 
-# ===================================
-# NETWORKING
-# ===================================
+variable "ssh_key_name" {
+  description = "SSH key pair name for instance access"
+  type        = string
+}
+
+# ================================================================
+# NETWORK CONFIGURATION
+# ================================================================
 
 variable "vpc_cidr" {
   description = "VPC CIDR block"
   type        = string
   default     = "10.0.0.0/16"
+  
+  validation {
+    condition     = can(cidrhost(var.vpc_cidr, 0))
+    error_message = "Must be a valid CIDR block"
+  }
 }
 
 variable "admin_cidrs" {
-  description = "List of CIDR blocks allowed for admin access"
+  description = "List of CIDR blocks allowed to SSH (leave empty for any)"
   type        = list(string)
-  default     = ["0.0.0.0/0"]
+  default     = []
 }
 
-# ===================================
-# KEY PAIR CONFIGURATION
-# ===================================
-
-variable "create_key_pair" {
-  description = "Create a new key pair"
-  type        = bool
-  default     = false
-}
-
-variable "public_key" {
-  description = "Public key material (required if create_key_pair = true)"
-  type        = string
-  default     = ""
-}
-
-variable "existing_key_pair" {
-  description = "Name of existing key pair (required if create_key_pair = false)"
-  type        = string
-  default     = ""
-}
-
-# ===================================
-# BACKUP CONFIGURATION
-# ===================================
-
-variable "backup_retention_days" {
-  description = "Number of days to retain backups in S3"
-  type        = number
-  default     = 30
-}
-
-# ===================================
-# FEATURE FLAGS
-# ===================================
-
-variable "enable_detailed_monitoring" {
-  description = "Enable detailed CloudWatch monitoring"
-  type        = bool
-  default     = true
-}
-
-variable "enable_cloudwatch_alarms" {
-  description = "Enable CloudWatch alarms"
-  type        = bool
-  default     = true
-}
-
-variable "enable_daily_snapshots" {
-  description = "Enable daily EBS snapshots"
-  type        = bool
-  default     = false
-}
-
-variable "snapshot_retention_days" {
-  description = "Number of days to retain snapshots"
-  type        = number
-  default     = 7
-}
-
-variable "allocate_eip" {
-  description = "Allocate Elastic IP"
-  type        = bool
-  default     = true
-}
+# ================================================================
+# DNS CONFIGURATION
+# ================================================================
 
 variable "enable_route53" {
-  description = "Enable Route53 DNS management"
+  description = "Enable Route53 DNS automation (or use Bind9)"
   type        = bool
   default     = false
 }
 
 variable "enable_mail_records" {
-  description = "Enable mail DNS records"
+  description = "Create mail-related DNS records (MX, SPF, DMARC)"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "enable_custom_nameservers" {
-  description = "Enable custom nameservers"
+  description = "Use custom nameservers instead of AWS defaults"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "ns1_ip" {
-  description = "IP for ns1 custom nameserver"
+  description = "Primary nameserver IP (Bind9)"
   type        = string
   default     = ""
 }
 
 variable "ns2_ip" {
-  description = "IP for ns2 custom nameserver"
+  description = "Secondary nameserver IP (Bind9)"
   type        = string
   default     = ""
 }
 
-# ===================================
-# MONITORING VARIABLES
-# ===================================
+# ================================================================
+# GENERAL SETTINGS
+# ================================================================
 
-variable "sns_topic_arn" {
-  description = "SNS topic ARN for alarms"
+variable "aws_region" {
+  description = "AWS region for deployment"
   type        = string
-  default     = ""
+  default     = "us-east-2"
 }
 
-variable "alert_email" {
-  description = "Email for alerts"
+variable "environment" {
+  description = "Environment name (production, staging, development)"
   type        = string
-  default     = "admin@example.com"
-}
-
-variable "slack_webhook" {
-  description = "Slack webhook URL"
-  type        = string
-  default     = ""
-}
-
-variable "cpu_high_threshold" {
-  description = "CPU threshold percentage"
-  type        = number
-  default     = 75
-}
-
-variable "disk_threshold" {
-  description = "Disk usage threshold percentage"
-  type        = number
-  default     = 80
-}
-
-variable "memory_threshold" {
-  description = "Memory usage threshold percentage"
-  type        = number
-  default     = 90
-}
-
-variable "enable_disk_alarm" {
-  description = "Enable disk usage alarm"
-  type        = bool
-  default     = true
-}
-
-variable "enable_memory_alarm" {
-  description = "Enable memory usage alarm"
-  type        = bool
-  default     = true
-}
-
-variable "create_dashboard" {
-  description = "Create CloudWatch dashboard"
-  type        = bool
-  default     = false
-}
-
-variable "create_dashboard_with_python" {
-  description = "Create dashboard using Python script"
-  type        = bool
-  default     = false
-}
-
-# ===================================
-# AMI CONFIGURATION
-# ===================================
-
-variable "use_custom_ami" {
-  description = "Use custom AMI instead of golden AMI"
-  type        = bool
-  default     = false
-}
-
-variable "custom_ami_id" {
-  description = "Custom AMI ID (required if use_custom_ami = true)"
-  type        = string
-  default     = ""
+  default     = "production"
   
   validation {
-    condition     = can(regex("^ami-", var.custom_ami_id)) || var.custom_ami_id == ""
-    error_message = "Custom AMI ID must start with 'ami-' or be empty."
+    condition     = contains(["production", "staging", "development"], var.environment)
+    error_message = "Environment must be: production, staging, or development"
   }
 }
-
-# ===================================
-# PANEL HOSTNAME
-# ===================================
-
-variable "panel_hostname" {
-  description = "Custom panel hostname (e.g., panel.example.com)"
-  type        = string
-  default     = ""
-  
-  validation {
-    condition     = var.panel_hostname == "" || can(regex("^([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}$", var.panel_hostname))
-    error_message = "Panel hostname must be a valid domain name if provided"
-  }
-}
-
-# ===================================
-# TAGS
-# ===================================
 
 variable "tags" {
-  description = "Additional tags for all resources"
+  description = "Additional resource tags"
   type        = map(string)
   default     = {}
+}
+
+# ================================================================
+# FEATURE FLAGS
+# ================================================================
+
+variable "enable_backups" {
+  description = "Enable automated backups (recommended)"
+  type        = bool
+  default     = true
+}
+
+variable "enable_monitoring" {
+  description = "Enable CloudWatch monitoring"
+  type        = bool
+  default     = true
+}
+
+variable "enable_auto_scaling" {
+  description = "Enable auto-scaling (Titan plan only)"
+  type        = bool
+  default     = false
 }
