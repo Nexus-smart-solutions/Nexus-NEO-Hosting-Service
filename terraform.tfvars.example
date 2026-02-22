@@ -1,58 +1,78 @@
-# ================================================================
-# NEO VPS - Terraform Variables Example
-# ================================================================
-# Copy this file to terraform.tfvars and update with your values
-# ================================================================
+# terraform.tfvars.example
+# Example configuration for NEO VPS provisioning
 
 # ================================================================
-# AWS Configuration
+# CUSTOMER INFORMATION
 # ================================================================
 
-aws_region  = "us-east-2"
-environment = "production"
+customer_id     = "acme-corp"
+customer_domain = "acme-example.com"
+customer_email  = "admin@acme-example.com"
 
 # ================================================================
-# Customer Information
+# PLAN SELECTION (NEW!)
 # ================================================================
+# Choose: core, scale, or titan
+# This determines server specs automatically
 
-customer_id     = "customer-001"
-customer_domain = "example.com"
-
-# ================================================================
-# Server Configuration
-# ================================================================
-
-control_panel = "cpanel"
-instance_type = "t3.medium"
-server_ip     = "3.15.200.100"
-deploy_server = false  # Set to true to deploy EC2 instance
-ssh_key_name  = ""     # Add your SSH key name if deploying server
+plan_slug = "scale"  # Core ($29/mo), Scale ($79/mo), Titan ($199/mo)
 
 # ================================================================
-# DNS Configuration
+# MARKETPLACE ADD-ONS (NEW!)
 # ================================================================
+# Add optional services from the marketplace
+# Leave empty [] for no add-ons
 
-enable_custom_nameservers = true
-ns1_ip                    = "18.191.22.15"
-ns2_ip                    = "3.15.200.100"
-
-enable_additional_nameservers = true
-ns3_ip                        = "54.152.161.12"
-ns4_ip                        = "54.152.161.12"
-
-# ================================================================
-# Mail Configuration
-# ================================================================
-
-enable_mail_records = true
-mail_server_ip      = ""  # Leave empty to use server_ip
+marketplace_addons = [
+  "storage-ebs-100",      # Extra 100GB storage (+$10/mo)
+  "security-waf",         # AWS WAF protection (+$25/mo)
+  # "email-ses",          # SES email service (+$10/mo)
+  # "cdn-cloudfront",     # CloudFront CDN (+$20/mo)
+]
 
 # ================================================================
-# Tags
+# SERVER CONFIGURATION
+# ================================================================
+# Note: instance_type and storage sizes are determined by plan_slug
+# These values are only used if plan_slug is not set
+
+os_type       = "almalinux-8"    # almalinux-8, ubuntu-22.04, etc.
+control_panel = "cyberpanel"     # cpanel, cyberpanel, directadmin, none
+
+# ================================================================
+# INFRASTRUCTURE
+# ================================================================
+
+aws_region   = "us-east-2"
+environment  = "production"
+ssh_key_name = "neo-deployment-key"
+
+# ================================================================
+# DNS CONFIGURATION
+# ================================================================
+
+enable_route53             = false  # Use Bind9 instead
+enable_custom_nameservers  = true
+ns1_ip                     = "18.191.22.15"   # Primary DNS
+ns2_ip                     = "3.145.100.200"  # Secondary DNS
+
+# ================================================================
+# NETWORK
+# ================================================================
+
+vpc_cidr = "10.0.0.0/16"
+
+# SSH access (leave empty for anywhere, or specify your IP)
+admin_cidrs = [
+  # "203.0.113.0/24",  # Your office IP
+]
+
+# ================================================================
+# ADDITIONAL TAGS
 # ================================================================
 
 tags = {
-  Project     = "NEO-VPS"
-  ManagedBy   = "Terraform"
-  Environment = "production"
+  Department = "IT"
+  CostCenter = "Engineering"
+  Project    = "Website-Hosting"
 }
