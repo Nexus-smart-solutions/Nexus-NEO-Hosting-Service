@@ -1,0 +1,80 @@
+# ================================================================
+# titan PLAN CONFIGURATION
+# ================================================================
+
+plan:
+  name: "Titan"
+  slug: "titan"
+  price_monthly: 99
+  price_yearly: 1188    # 25% discount
+  
+  description: "For mission-critical applications and high-traffic sites."
+  
+  specs:
+    compute:
+      instance_type: "t3.large"
+      vcpu: 8
+      ram_gb: 16
+      
+    storage:
+      root_volume_gb: 100
+      data_volume_gb: 500
+      total_gb: 600
+      iops: 12000
+      throughput_mbps: 500
+      
+    networking:
+      bandwidth_tb: 10
+      elastic_ip: 5
+      
+    database:
+      enabled: true
+      instance_class: "db.t3.small"
+      storage_gb: 200
+      backup_retention_days: 35
+      multi_az: true
+      
+    backups:
+      frequency: "hourly"
+      retention_days: 90
+      cross_region: true
+      cross_region_retention_days: 30
+  
+  limits:
+    domains: -1  # unlimited
+    databases: -1
+    email_accounts: -1
+    cron_jobs: -1
+    ftp_accounts: -1
+    subdomains: -1
+    
+  features:
+    - "Everything in Professional"
+    - "Multi-AZ RDS Database"
+    - "Continuous Backups (90 days)"
+    - "24/7 Phone Support"
+    - "Dedicated IP Pool"
+    - "Custom Configurations"
+    - "99.99% Uptime SLA"
+    - "Advanced DDoS Protection"
+    - "WAF Integration Available"
+    - "Priority Provisioning"
+    
+  restrictions:
+    max_file_size_mb: 2048
+    max_upload_size_mb: 1024
+    php_memory_limit_mb: 512
+    php_max_execution_time: 1800
+    
+  terraform_vars:
+    instance_type: "t3.large"
+    root_volume_size: 100
+    data_volume_size: 500
+    enable_rds: true
+    rds_instance_class: "db.t3.small"
+    rds_storage: 200
+    rds_multi_az: true
+    enable_cloudwatch_detailed: true
+    enable_auto_scaling: true
+    min_instances: 1
+    max_instances: 3
