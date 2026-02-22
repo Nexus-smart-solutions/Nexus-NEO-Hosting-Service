@@ -1,75 +1,173 @@
 # ================================================================
-# scale PLAN CONFIGURATION
+# SCALE PLAN - Growth Package
+# ================================================================
+# For growing businesses and production applications
 # ================================================================
 
 plan:
+  # Plan Identity
   name: "Scale"
   slug: "scale"
-  price_monthly: 79
-  price_yearly: 790     # 25% discount
+  tier: 2
   
-  description: "For growing businesses and production websites."
+  # Pricing
+  pricing:
+    monthly: 79
+    yearly: 790        # Save 25%
+    setup_fee: 0
+    currency: "USD"
   
-  specs:
-    compute:
-      instance_type: "t3.medium"
-      vcpu: 4
-      ram_gb: 8
-      
-    storage:
-      root_volume_gb: 50
-      data_volume_gb: 200
-      total_gb: 250
+  # Marketing
+  tagline: "Built for Growth"
+  description: "Professional infrastructure for growing businesses and high-traffic sites"
+  target_audience: "E-commerce, SaaS platforms, business applications, agencies"
+  popular: true       # Mark as most popular
+  
+  # Compute Resources
+  compute:
+    instance_type: "t3.medium"
+    vcpu: 4
+    ram_gb: 8
+    architecture: "x86_64"
+    cpu_credits: "unlimited"
+    
+  # Storage
+  storage:
+    root_volume:
+      size_gb: 50
+      type: "gp3"
       iops: 6000
       throughput_mbps: 250
-      
-    networking:
-      bandwidth_tb: 3
-      elastic_ip: 2
-      
-    database:
-      enabled: true
-      instance_class: "db.t3.micro"
-      storage_gb: 50
-      backup_retention_days: 30
-      multi_az: false
-      
-    backups:
-      frequency: "hourly"
-      retention_days: 30
-      cross_region: true
-      cross_region_retention_days: 14
-  
+    
+    data_volume:
+      size_gb: 200
+      type: "gp3"
+      iops: 6000
+      throughput_mbps: 250
+    
+    total_gb: 250
+    expandable: true
+    max_expansion_gb: 1000
+    
+  # Networking
+  networking:
+    bandwidth_monthly_tb: 3
+    elastic_ips: 2
+    ipv6_support: true
+    ddos_protection: "advanced"
+    
+  # Database
+  database:
+    included: true
+    engine: "mysql"
+    version: "8.0"
+    instance_class: "db.t3.micro"
+    storage_gb: 50
+    storage_type: "gp3"
+    backup_retention_days: 30
+    multi_az: false
+    auto_minor_version_upgrade: true
+    
+  # Backups
+  backup:
+    frequency: "hourly"
+    retention_days: 30
+    auto_backup: true
+    manual_backup: true
+    cross_region: true
+    cross_region_retention_days: 14
+    point_in_time_recovery: true
+    
+  # Monitoring
+  monitoring:
+    basic_metrics: true
+    detailed_monitoring: true
+    custom_alarms: 10
+    log_retention_days: 30
+    performance_insights: true
+    
+  # Support
+  support:
+    level: "priority_email"
+    response_time_hours: 8
+    business_hours: false  # 24/7
+    priority: "high"
+    dedicated_channel: true
+    
+  # SLA
+  sla:
+    uptime_percentage: 99.95
+    downtime_credits: true
+    response_time_guarantee: true
+    
+  # Resource Limits
   limits:
     domains: 25
+    subdomains_per_domain: 100
     databases: 25
     email_accounts: 50
-    cron_jobs: 100
     ftp_accounts: 25
-    subdomains: 100
+    cron_jobs: 100
+    ssl_certificates: 25
     
-  features:
-    - "Everything in Basic"
-    - "Managed RDS Database"
-    - "Hourly Backups (30 days)"
-    - "Priority Email Support"
-    - "Advanced Monitoring"
-    - "99.95% Uptime SLA"
-    - "DDoS Protection (Advanced)"
-    - "SSL Wildcard Support"
-    
-  restrictions:
+  # Application Limits
+  app_limits:
     max_file_size_mb: 500
     max_upload_size_mb: 250
     php_memory_limit_mb: 256
-    php_max_execution_time: 600
+    php_max_execution_time_sec: 600
+    concurrent_connections: 500
+    max_processes: 200
     
-  terraform_vars:
+  # Features Included
+  features:
+    - "Everything in Core Plan"
+    - "Managed MySQL/PostgreSQL Database (RDS)"
+    - "Hourly Backups (30 days retention)"
+    - "Cross-Region Disaster Recovery"
+    - "Priority Email Support (8h response)"
+    - "Advanced Performance Monitoring"
+    - "99.95% Uptime SLA"
+    - "Advanced DDoS Protection"
+    - "SSL Wildcard Certificates"
+    - "Staging Environment"
+    - "Git Auto-Deployment"
+    - "Redis/Memcached Support"
+    
+  # Features NOT Included
+  restrictions:
+    - "No multi-AZ database"
+    - "No phone support"
+    - "No custom configurations"
+    
+  # Terraform Variables
+  terraform:
     instance_type: "t3.medium"
     root_volume_size: 50
+    root_volume_type: "gp3"
     data_volume_size: 200
+    data_volume_type: "gp3"
     enable_rds: true
     rds_instance_class: "db.t3.micro"
-    rds_storage: 50
-    enable_cloudwatch_detailed: true
+    rds_storage_gb: 50
+    rds_multi_az: false
+    enable_detailed_monitoring: true
     enable_auto_scaling: false
+    backup_retention_days: 30
+    enable_cross_region_backup: true
+    
+  # Add-ons Compatible
+  marketplace_compatible:
+    - "storage-ebs-100"
+    - "storage-ebs-500"
+    - "storage-s3-500"
+    - "storage-s3-2tb"
+    - "security-waf"
+    - "security-cloudwatch-advanced"
+    - "email-workmail-50"
+    - "email-ses"
+    - "perf-ram-upgrade"
+    - "perf-cpu-upgrade"
+    - "db-redis"
+    - "db-additional-rds"
+    - "cdn-cloudfront"
