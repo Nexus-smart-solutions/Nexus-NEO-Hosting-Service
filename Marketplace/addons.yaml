@@ -1,0 +1,187 @@
+# ================================================================
+# MARKETPLACE ADD-ONS CATALOG
+# ================================================================
+
+categories:
+  
+  # ============================================================
+  # STORAGE ADD-ONS
+  # ============================================================
+  - name: "Storage"
+    slug: "storage"
+    icon: "hard-drive"
+    description: "Expand your storage capacity"
+    
+    items:
+      - id: "storage-ebs-100"
+        name: "Extra 100GB Storage"
+        description: "Add 100GB of high-performance SSD storage"
+        price_monthly: 10
+        price_setup: 0
+        compatible_plans: ["core", "scale", "titan"]
+        terraform_module: "marketplace/modules/storage/ebs-expansion"
+        config:
+          size_gb: 100
+          volume_type: "gp3"
+          iops: 3000
+          
+      - id: "storage-s3-500"
+        name: "S3 Bucket (500GB)"
+        description: "Managed S3 bucket with 500GB storage"
+        price_monthly: 15
+        price_setup: 0
+        compatible_plans: ["core", "scale", "titan"]
+        terraform_module: "marketplace/modules/storage/s3-bucket"
+        config:
+          size_gb: 500
+          versioning: true
+          lifecycle_rules: true
+  
+  # ============================================================
+  # PERFORMANCE ADD-ONS
+  # ============================================================
+  - name: "Performance"
+    slug: "performance"
+    icon: "zap"
+    description: "Boost your server performance"
+    
+    items:
+      - id: "perf-ram-2gb"
+        name: "Extra 2GB RAM"
+        description: "Upgrade RAM for better performance"
+        price_monthly: 20
+        price_setup: 5
+        compatible_plans: ["core", "scale"]
+        terraform_module: "marketplace/modules/performance/instance-upgrade"
+        config:
+          upgrade_type: "ram"
+          additional_ram_gb: 2
+          
+      - id: "perf-cpu-2vcpu"
+        name: "Extra 2 vCPU"
+        description: "Add more processing power"
+        price_monthly: 30
+        price_setup: 5
+        compatible_plans: ["core", "scale"]
+        terraform_module: "marketplace/modules/performance/instance-upgrade"
+        config:
+          upgrade_type: "cpu"
+          additional_vcpu: 2
+  
+  # ============================================================
+  # SECURITY ADD-ONS
+  # ============================================================
+  - name: "Security"
+    slug: "security"
+    icon: "shield"
+    description: "Enhanced security features"
+    
+    items:
+      - id: "security-waf"
+        name: "AWS WAF Protection"
+        description: "Web Application Firewall with managed rules"
+        price_monthly: 25
+        price_setup: 10
+        compatible_plans: ["scale", "titan"]
+        terraform_module: "marketplace/modules/security/waf"
+        config:
+          managed_rules: true
+          rate_limiting: true
+          geo_blocking: false
+          
+      - id: "security-cloudwatch-advanced"
+        name: "Advanced Monitoring"
+        description: "Enhanced CloudWatch metrics and alarms"
+        price_monthly: 15
+        price_setup: 0
+        compatible_plans: ["core", "scale", "titan"]
+        terraform_module: "marketplace/modules/security/cloudwatch-advanced"
+        config:
+          detailed_monitoring: true
+          custom_metrics: true
+          log_retention_days: 90
+  
+  # ============================================================
+  # EMAIL ADD-ONS
+  # ============================================================
+  - name: "Email Services"
+    slug: "email"
+    icon: "mail"
+    description: "scale email solutions"
+    
+    items:
+      - id: "email-workmail-50"
+        name: "WorkMail (50 users)"
+        description: "Managed business email with 50GB per user"
+        price_monthly: 40
+        price_setup: 20
+        compatible_plans: ["scale", "titan"]
+        terraform_module: "marketplace/modules/email/workmail"
+        config:
+          users: 50
+          storage_per_user_gb: 50
+          
+      - id: "email-ses"
+        name: "SES Email Service"
+        description: "High-volume email sending service"
+        price_monthly: 10
+        price_setup: 0
+        compatible_plans: ["core", "scale", "titan"]
+        terraform_module: "marketplace/modules/email/ses"
+        config:
+          monthly_emails: 50000
+          dkim: true
+          spf: true
+  
+  # ============================================================
+  # DATABASE ADD-ONS
+  # ============================================================
+  - name: "Databases"
+    slug: "database"
+    icon: "database"
+    description: "Additional database services"
+    
+    items:
+      - id: "db-rds-additional"
+        name: "Additional RDS Instance"
+        description: "Separate MySQL/PostgreSQL database"
+        price_monthly: 35
+        price_setup: 0
+        compatible_plans: ["core", "scale", "titan"]
+        terraform_module: "marketplace/modules/database/additional-rds"
+        config:
+          instance_class: "db.t3.micro"
+          storage_gb: 50
+          engine: "mysql"
+          
+      - id: "db-redis"
+        name: "Redis Cache"
+        description: "ElastiCache Redis for caching"
+        price_monthly: 25
+        price_setup: 0
+        compatible_plans: ["core", "scale", "titan"]
+        terraform_module: "marketplace/modules/database/redis"
+        config:
+          node_type: "cache.t3.micro"
+          num_cache_nodes: 1
+  
+  # ============================================================
+  # CDN ADD-ONS
+  # ============================================================
+  - name: "Content Delivery"
+    slug: "cdn"
+    icon: "globe"
+    description: "Global content delivery"
+    
+    items:
+      - id: "cdn-cloudfront"
+        name: "CloudFront CDN"
+        description: "Global CDN with edge caching"
+        price_monthly: 20
+        price_setup: 10
+        compatible_plans: ["scale", "titan"]
+        terraform_module: "marketplace/modules/cdn/cloudfront"
+        config:
+          price_class: "PriceClass_100"
+          ssl_certificate: true
+          gzip_compression: true
