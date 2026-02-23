@@ -58,6 +58,11 @@ output "elastic_ip" {
   value = var.allocate_elastic_ip ? aws_eip.panel_server[0].public_ip : null
 }
 
+output "alb_arn" {
+  description = "ARN of the Application Load Balancer (if enabled)"
+  value       = try(aws_lb.main[0].arn, "") 
+}
+
 # ===================================
 # CONTROL PANEL
 # ===================================
