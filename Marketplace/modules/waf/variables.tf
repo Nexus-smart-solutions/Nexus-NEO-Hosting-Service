@@ -35,3 +35,15 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "enable_logging" {
+  description = "Enable WAF logging to CloudWatch"
+  type        = bool
+  default     = false
+}
+
+variable "create_dashboard" {
+  description = "Create CloudWatch dashboard for WAF"
+  type        = bool
+  default     = false
+}
