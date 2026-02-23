@@ -8,7 +8,7 @@ locals {
   
   available_addons = {
     "storage-ebs-100" = {
-      module_path = "marketplace/modules/storage/ebs-expansion"
+      module_path = "Marketplace/modules/storage/ebs-expansion"
       config = {
         size_gb = 100
         volume_type = "gp3"
@@ -16,7 +16,7 @@ locals {
       }
     }
     "storage-s3-500" = {
-      module_path = "marketplace/modules/storage/s3-bucket"
+      module_path = "Marketplace/modules/storage/s3-bucket"
       config = {
         size_gb = 500
         versioning = true
@@ -37,14 +37,13 @@ locals {
 
 module "waf_addon" {
   count = var.enable_marketplace && contains(var.selected_addons, "security-waf") ? 1 : 0
-    source = "./marketplace/modules/waf"
+  
+  source = "./Marketplace/modules/waf"
   
   customer_id      = var.customer_id
   customer_domain  = var.customer_domain
   environment      = var.environment
-  
-  resource_arn     = module.panel_server.alb_arn  # تأكد إن alb_arn موجود في outputs
-  
+  resource_arn     = module.panel_server.alb_arn
   rate_limit       = 2000
   enable_logging   = false
   create_dashboard = var.create_dashboard
@@ -57,10 +56,10 @@ module "waf_addon" {
 }
 
 # ===================================
-# ADD-ONS 
+#  ADD-ONS 
 # ===================================
 # module "storage_addon" {
 #   count = var.enable_marketplace && contains(var.selected_addons, "storage-ebs-100") ? 1 : 0
-#   source = "./marketplace/modules/storage/ebs-expansion"
+#   source = "./Marketplace/modules/storage/ebs-expansion"
 #   ...
 # }
