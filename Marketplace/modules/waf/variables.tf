@@ -18,8 +18,25 @@ variable "environment" {
   default     = "production"
 }
 
-variable "alb_arn" {
-  description = "ARN of ALB to associate with WAF"
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-2"
+}
+
+variable "scope" {
+  description = "WAF scope (REGIONAL or CLOUDFRONT)"
+  type        = string
+  default     = "REGIONAL"
+
+  validation {
+    condition     = contains(["REGIONAL", "CLOUDFRONT"], var.scope)
+    error_message = "Scope must be REGIONAL or CLOUDFRONT"
+  }
+}
+
+variable "resource_arn" {
+  description = "ARN of resource to associate with WAF (ALB or CloudFront)"
   type        = string
   default     = ""
 }
@@ -30,8 +47,14 @@ variable "rate_limit" {
   default     = 2000
 }
 
+variable "blocked_countries" {
+  description = "List of country codes to block"
+  type        = list(string)
+  default     = []
+}
+
 variable "enable_logging" {
-  description = "Enable WAF logging"
+  description = "Enable WAF logging to CloudWatch"
   type        = bool
   default     = false
 }
@@ -42,10 +65,10 @@ variable "log_retention_days" {
   default     = 30
 }
 
-variable "enable_managed_rules" {
-  description = "Enable AWS managed rule groups"
+variable "create_dashboard" {
+  description = "Create CloudWatch dashboard for WAF"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "tags" {
