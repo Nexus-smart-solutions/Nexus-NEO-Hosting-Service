@@ -43,8 +43,11 @@ module "waf_addon" {
   customer_id      = var.customer_id
   customer_domain  = var.customer_domain
   environment      = var.environment
-  resource_arn     = module.panel_server.alb_arn
+  
+  resource_arn     = ""
+  
   rate_limit       = 2000
+  
   enable_logging   = false
   create_dashboard = var.create_dashboard
   
@@ -56,10 +59,32 @@ module "waf_addon" {
 }
 
 # ===================================
-#  ADD-ONS 
+# ADD-ONS 
 # ===================================
+
 # module "storage_addon" {
 #   count = var.enable_marketplace && contains(var.selected_addons, "storage-ebs-100") ? 1 : 0
 #   source = "./Marketplace/modules/storage/ebs-expansion"
-#   ...
+#   customer_id = var.customer_id
+#   customer_domain = var.customer_domain
+#   size_gb = 100
+#   tags = {
+#     Customer = var.customer_id
+#     Domain   = var.customer_domain
+#     Addon    = "storage-ebs-100"
+#   }
+# }
+
+# module "s3_addon" {
+#   count = var.enable_marketplace && contains(var.selected_addons, "storage-s3-500") ? 1 : 0
+#   source = "./Marketplace/modules/storage/s3-bucket"
+#   customer_id = var.customer_id
+#   customer_domain = var.customer_domain
+#   size_gb = 500
+#   versioning = true
+#   tags = {
+#     Customer = var.customer_id
+#     Domain   = var.customer_domain
+#     Addon    = "storage-s3-500"
+#   }
 # }
