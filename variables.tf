@@ -309,7 +309,7 @@ variable "selected_plan" {
 }
 
 # ===================================
-# MONITORING VARIABLES (اللي ناقصة)
+# MONITORING VARIABLES
 # ===================================
 
 variable "sns_topic_arn" {
@@ -370,4 +370,38 @@ variable "create_dashboard_with_python" {
   description = "Create dashboard using Python script"
   type        = bool
   default     = false
+}
+
+# ===================================
+# WAF ADD-ON VARIABLES
+# ===================================
+
+variable "enable_waf" {
+  description = "Enable WAF protection (if purchased in marketplace)"
+  type        = bool
+  default     = false
+}
+
+variable "waf_rate_limit" {
+  description = "Rate limit per IP for WAF (requests per 5 minutes)"
+  type        = number
+  default     = 2000
+}
+
+variable "waf_blocked_countries" {
+  description = "List of country codes to block via WAF"
+  type        = list(string)
+  default     = []
+}
+
+variable "enable_waf_logging" {
+  description = "Enable WAF logging to CloudWatch"
+  type        = bool
+  default     = false
+}
+
+variable "waf_log_retention_days" {
+  description = "Days to retain WAF logs"
+  type        = number
+  default     = 30
 }
