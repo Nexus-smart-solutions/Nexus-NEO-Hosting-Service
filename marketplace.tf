@@ -33,3 +33,27 @@ locals {
 
 # Dynamic creation of add-on modules
 # This requires creating separate module files for each add-on type
+#############################################################################
+# Dynamic WAF add-on
+#############################################################################
+
+resource "aws_wafv2_web_acl" "marketplace_waf" {
+  count = var.enable_marketplace && contains(var.selected_addons, "security-waf") ? 1 : 0
+  
+}
+
+module "waf_addon" {
+  count = var.enable_marketplace && contains(var.selected_addons, "security-waf") ? 1 : 0
+  source = "./marketplace/modules/security/waf"
+  
+  customer_id      = var.customer_id
+  customer_domain  = var.customer_domain
+  environment      = var.environment
+  alb_arn          = module.panel_server.alb_arn 
+  
+  tags = {
+    Customer = var.customer_id
+    Domain   = var.customer_domain
+    Addon    = "waf"
+  }
+}
