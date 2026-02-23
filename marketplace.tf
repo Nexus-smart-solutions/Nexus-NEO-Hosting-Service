@@ -31,25 +31,23 @@ locals {
   ] : []
 }
 
-# Dynamic creation of add-on modules
-# This requires creating separate module files for each add-on type
-#############################################################################
-# Dynamic WAF add-on
-#############################################################################
-
-resource "aws_wafv2_web_acl" "marketplace_waf" {
-  count = var.enable_marketplace && contains(var.selected_addons, "security-waf") ? 1 : 0
-  
-}
+# ===================================
+# WAF ADD-ON (Module)
+# ===================================
 
 module "waf_addon" {
   count = var.enable_marketplace && contains(var.selected_addons, "security-waf") ? 1 : 0
-  source = "./marketplace/modules/security/waf"
+    source = "./marketplace/modules/waf"
   
   customer_id      = var.customer_id
   customer_domain  = var.customer_domain
   environment      = var.environment
-  alb_arn          = module.panel_server.alb_arn 
+  
+  resource_arn     = module.panel_server.alb_arn  # تأكد إن alb_arn موجود في outputs
+  
+  rate_limit       = 2000
+  enable_logging   = false
+  create_dashboard = var.create_dashboard
   
   tags = {
     Customer = var.customer_id
@@ -57,3 +55,12 @@ module "waf_addon" {
     Addon    = "waf"
   }
 }
+
+# ===================================
+# ADD-ONS 
+# ===================================
+# module "storage_addon" {
+#   count = var.enable_marketplace && contains(var.selected_addons, "storage-ebs-100") ? 1 : 0
+#   source = "./marketplace/modules/storage/ebs-expansion"
+#   ...
+# }
