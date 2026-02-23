@@ -79,15 +79,19 @@ categories:
     items:
       - id: "security-waf"
         name: "AWS WAF Protection"
-        description: "Web Application Firewall with managed rules"
+        description: "Web Application Firewall with managed rules to protect against SQL injection, XSS, and common web exploits"
         price_monthly: 25
         price_setup: 10
         compatible_plans: ["scale", "titan"]
-        terraform_module: "marketplace/modules/security/waf"
+        terraform_module: "marketplace/modules/waf"
+        requirements:
+          - "Application Load Balancer (ALB) required"
         config:
           managed_rules: true
           rate_limiting: true
+          rate_limit: 2000
           geo_blocking: false
+          logging: false
           
       - id: "security-cloudwatch-advanced"
         name: "Advanced Monitoring"
